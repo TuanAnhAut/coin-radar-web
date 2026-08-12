@@ -148,7 +148,7 @@ export function ExpertDirectory() {
       </div>
 
       {/* Category filter tabs - horizontal scrollable on mobile */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none -mx-1 px-1">
         {categoryTabs.map((tab) => (
           <button
             key={tab.key}

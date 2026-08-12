@@ -290,11 +290,11 @@ export function AlertTemplatesSheet() {
       {/* Desktop: Sheet from right */}
       <Sheet open={!isMobile && open} onOpenChange={(v) => !v && closeOverlay()}>
         <SheetContent side="right" className="w-full p-0 sm:max-w-lg flex flex-col">
-          <SheetHeader>
+          <SheetHeader className="shrink-0">
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>{desc}</SheetDescription>
           </SheetHeader>
-          <div className="mt-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+          <div className="mt-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar pb-24">
             {renderContent()}
           </div>
         </SheetContent>

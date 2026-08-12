@@ -909,15 +909,26 @@ export function AlertBuilderSheet() {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && closeOverlay()}>
       {/* Full screen on mobile, centered dialog on desktop */}
-      <DialogContent className="fixed inset-0 left-0 top-0 flex w-full max-w-full translate-x-0 translate-y-0 gap-0 rounded-none border-0 p-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:mx-auto sm:mt-0 sm:max-w-lg sm:h-auto sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:p-0">
-        <DialogHeader className="px-4 pt-4 pb-0 sm:px-6 sm:pt-6">
+      <DialogContent
+        showCloseButton={false}
+        className="fixed inset-0 left-0 top-0 flex flex-col h-dvh w-full max-w-full translate-x-0 translate-y-0 gap-0 rounded-none border-0 p-0 shadow-none sm:inset-auto sm:left-1/2 sm:top-1/2 sm:mx-auto sm:mt-0 sm:max-w-lg sm:h-auto sm:max-h-[85vh] sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:shadow-lg sm:p-0"
+      >
+        <DialogHeader className="shrink-0 px-4 pt-4 pb-0 sm:px-6 sm:pt-6">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="min-w-0 flex-1">
               <DialogTitle className="text-base sm:text-lg">Tạo cảnh báo mới</DialogTitle>
               <DialogDescription className="mt-1 text-xs sm:text-sm">
                 {STEPS[step]}
               </DialogDescription>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 -mr-1"
+              onClick={() => closeOverlay()}
+            >
+              <X className="h-5 w-5" />
+            </Button>
           </div>
           <div className="mt-3">
             <StepIndicator current={step} />
@@ -961,7 +972,7 @@ export function AlertBuilderSheet() {
         </div>
 
         {/* Navigation - proper size and spacing at bottom */}
-        <div className="flex items-center justify-between border-t px-4 py-3 sm:px-6 sm:py-4">
+        <div className="shrink-0 safe-bottom flex items-center justify-between border-t px-4 py-3 sm:px-6 sm:py-4">
           <Button
             variant="outline"
             onClick={() => setStep((s) => Math.max(0, s - 1))}

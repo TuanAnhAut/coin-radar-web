@@ -547,7 +547,7 @@ export function AlertDetailSheet() {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <SheetTitle className="truncate">
-                    {loading ? <Skeleton className="h-5 w-32" /> : alert?.assetSymbol}
+                    {alert?.assetSymbol ?? 'Đang tải...'}
                   </SheetTitle>
                   {alert && (
                     <Badge
@@ -558,9 +558,11 @@ export function AlertDetailSheet() {
                     </Badge>
                   )}
                 </div>
-                <SheetDescription className="mt-1">
-                  {loading ? <Skeleton className="h-4 w-48 mt-1" /> : alert?.condition ?? ''}
-                </SheetDescription>
+                {loading ? (
+                  <Skeleton className="mt-1.5 h-4 w-48" />
+                ) : alert?.condition ? (
+                  <SheetDescription className="mt-1">{alert.condition}</SheetDescription>
+                ) : null}
               </div>
             </div>
           </SheetHeader>

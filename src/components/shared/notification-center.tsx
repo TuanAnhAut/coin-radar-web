@@ -248,7 +248,7 @@ export function NotificationCenter() {
       {!isMobile && (
         <Sheet open={notificationsOpen} onOpenChange={setNotificationsOpen}>
           <SheetContent side="right" className="w-full sm:max-w-md p-0">
-            <SheetHeader className="px-4 pt-4 pb-3 border-b">
+            <SheetHeader className="shrink-0 px-4 pt-4 pb-3 border-b">
               <div className="flex items-center justify-between">
                 <div>
                   <SheetTitle className="text-base">Thông báo</SheetTitle>

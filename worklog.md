@@ -401,3 +401,24 @@ Stage Summary:
 - All 29 custom components verified: zero runtime errors, zero lint errors
 - Tested on 3 viewports (375px mobile, 768px tablet, 1280px desktop)
 - All tabs, overlays, drawers, sheets working correctly
+---
+Task ID: 8
+Agent: main
+Task: Refactor all pages and modal CSS to avoid errors
+
+Work Log:
+- Fixed critical HTML nesting violation in AlertDetailSheet: `<p>` (SheetDescription) containing `<div>` (Skeleton), and `<h2>` (SheetTitle) containing `<div>` (Skeleton). Moved Skeleton outside of Title/Description components, used text placeholder for loading state instead.
+- Fixed DialogContent base component: changed `grid` to `flex flex-col` layout to support `flex-1` children properly across all Dialog consumers.
+- Fixed AlertBuilderSheet Dialog CSS: added `flex-col h-dvh` for proper mobile fullscreen layout, added `showCloseButton={false}` with custom X button in header, added `shrink-0` to header/footer, added `safe-bottom` to navigation bar, added `sm:max-h-[85vh]` for desktop, removed shadow on mobile fullscreen.
+- Fixed invalid nested `<button>` inside `<button>` in WatchlistSheet: changed outer button to `<div role="button" tabIndex={0}>` with proper keyboard handler.
+- Added `shrink-0` to NotificationCenter SheetHeader to prevent header compression.
+- Added `shrink-0` to AlertTemplatesSheet SheetHeader and `pb-24` to scrollable content for close button clearance.
+- Fixed `scrollbar-hide` → `scrollbar-none` consistency in ExpertDirectory.
+- Ran comprehensive audit of all 26 component files - confirmed only the above issues existed.
+
+Stage Summary:
+- 6 CSS/HTML fixes applied across 6 files
+- All fixes verified with lint (pass) and agent-browser (no console errors on mobile + desktop)
+- AlertDetailSheet: no more `<p> cannot contain <div>` hydration error
+- AlertBuilderSheet: proper fullscreen on mobile, centered dialog on desktop with correct flex layout
+- All overlay z-indexes properly stacked (z-40 for nav, z-50 for overlays)

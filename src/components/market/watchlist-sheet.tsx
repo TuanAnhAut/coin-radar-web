@@ -208,9 +208,12 @@ export function WatchlistSheet() {
               transition={{ delay: idx * 0.04 }}
               className="flex min-h-[72px] items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
             >
-              <button
-                className="min-h-[44px] flex-1 text-left"
+              <div
+                role="button"
+                tabIndex={0}
+                className="min-h-[44px] flex-1 cursor-pointer text-left"
                 onClick={() => openOverlay('asset-detail', { symbol: item.assetSymbol })}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlay('asset-detail', { symbol: item.assetSymbol }) } }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -221,6 +224,7 @@ export function WatchlistSheet() {
                   </div>
                   {/* Remove button - minimum 44px touch target */}
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation()
                       handleRemove(item.id)
@@ -243,7 +247,7 @@ export function WatchlistSheet() {
                     {formatPercent(item.changePercent)}
                   </span>
                 </div>
-              </button>
+              </div>
             </motion.div>
           ))}
         </div>
