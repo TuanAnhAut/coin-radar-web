@@ -68,9 +68,9 @@ function riskBorder(risk: AlertRiskLevel) {
 
 function StepIndicator({ current }: { current: number }) {
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 overflow-x-auto scrollbar-none">
       {STEPS.map((step, i) => (
-        <div key={step} className="flex items-center gap-2">
+        <div key={step} className="flex shrink-0 items-center gap-2">
           <div
             className={cn(
               'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors',
@@ -85,7 +85,7 @@ function StepIndicator({ current }: { current: number }) {
           </div>
           <span
             className={cn(
-              'text-xs font-medium hidden sm:inline',
+              'text-xs font-medium whitespace-nowrap hidden sm:inline',
               i <= current ? 'text-foreground' : 'text-muted-foreground'
             )}
           >
@@ -169,25 +169,25 @@ function StepAsset({
       exit={{ opacity: 0, x: -20 }}
       className="space-y-4"
     >
-      {/* Search */}
+      {/* Search - full width, proper height */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Tìm mã tài sản..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
+          className="h-12 pl-9 text-sm sm:h-11"
         />
       </div>
 
-      {/* Asset type chips */}
-      <div className="flex flex-wrap gap-1.5">
+      {/* Asset type filter - horizontal scrollable chips */}
+      <div className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none">
         {ASSET_TYPES.map((t) => (
           <button
             key={t.key}
             onClick={() => setAssetType(t.key)}
             className={cn(
-              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+              'flex min-h-[36px] shrink-0 items-center rounded-full border px-3 text-xs font-medium transition-colors',
               assetType === t.key
                 ? 'border-primary bg-primary/10 text-primary'
                 : 'border-border text-muted-foreground hover:bg-accent'
@@ -206,7 +206,7 @@ function StepAsset({
               <span className="font-semibold">{selected.symbol}</span>
               <span className="ml-2 text-sm text-muted-foreground">{selected.name}</span>
             </div>
-            <button onClick={() => onSelect(null as unknown as Asset)} className="text-muted-foreground hover:text-foreground">
+            <button onClick={() => onSelect(null as unknown as Asset)} className="flex min-h-[44px] min-w-[44px] items-center justify-center text-muted-foreground hover:text-foreground">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -222,13 +222,13 @@ function StepAsset({
       {/* Recent assets */}
       <div>
         <p className="text-xs font-medium text-muted-foreground mb-2">Gần đây</p>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none">
           {RECENT_ASSETS.map((sym) => (
             <button
               key={sym}
               onClick={() => handleRecentClick(sym)}
               className={cn(
-                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                'flex min-h-[36px] shrink-0 items-center rounded-full border px-3 text-xs font-medium transition-colors',
                 selected?.symbol === sym
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:bg-accent'
@@ -240,7 +240,7 @@ function StepAsset({
         </div>
       </div>
 
-      {/* Asset list */}
+      {/* Asset list - proper height items, price visible */}
       <div className="max-h-48 overflow-y-auto custom-scrollbar rounded-lg border divide-y">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -261,18 +261,18 @@ function StepAsset({
               key={asset.id}
               onClick={() => onSelect(asset)}
               className={cn(
-                'flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent',
+                'flex min-h-[60px] w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent',
                 selected?.id === asset.id && 'bg-primary/5'
               )}
             >
-              <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-muted text-xs font-bold">
                 {asset.symbol.slice(0, 2)}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium truncate">{asset.symbol}</p>
                 <p className="text-xs text-muted-foreground truncate">{asset.name}</p>
               </div>
-              <div className="text-right flex-shrink-0">
+              <div className="shrink-0 text-right">
                 <p className="text-sm font-medium">{formatPrice(asset.price, asset.symbol)}</p>
                 <p className={cn('text-xs font-medium', asset.change24h >= 0 ? 'text-gain' : 'text-loss')}>
                   {asset.change24h >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%
@@ -317,29 +317,29 @@ function StepCondition({
           <p className="text-xs font-medium text-primary mb-1">Mẫu đã chọn</p>
           <p className="font-semibold text-sm">{template.name}</p>
           <p className="text-xs text-muted-foreground mt-0.5">{template.description}</p>
-          <p className="mt-1.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded px-2 py-1">
+          <p className="mt-1.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded px-2 py-1 break-words">
             {template.condition}
           </p>
         </div>
       )}
 
-      {/* Condition type selector */}
+      {/* Condition type selector - full width on mobile, 3 cols on desktop */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Loại điều kiện</Label>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           {CONDITION_TYPES.map((ct) => (
             <button
               key={ct.key}
               onClick={() => setConditionType(ct.key)}
               className={cn(
-                'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors',
+                'flex min-h-[52px] items-center justify-center gap-2 rounded-lg border p-3 text-center transition-colors',
                 conditionType === ct.key
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:bg-accent'
               )}
             >
-              <ct.icon className="h-5 w-5" />
-              <span className="text-xs font-medium">{ct.label}</span>
+              <ct.icon className="h-5 w-5 shrink-0" />
+              <span className="text-xs font-medium whitespace-nowrap">{ct.label}</span>
             </button>
           ))}
         </div>
@@ -349,30 +349,32 @@ function StepCondition({
       {conditionType === 'technical' && (
         <div className="space-y-3">
           <Label className="text-sm font-medium">Chỉ báo</Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {INDICATORS.map((ind) => (
               <button
                 key={ind.key}
                 onClick={() => setIndicator(ind.key)}
                 className={cn(
-                  'rounded-lg border p-3 text-left transition-colors',
+                  'flex min-h-[52px] items-center rounded-lg border p-3 text-left transition-colors',
                   indicator === ind.key
                     ? 'border-primary bg-primary/10'
                     : 'border-border hover:bg-accent'
                 )}
               >
-                <p className={cn('text-sm font-semibold', indicator === ind.key ? 'text-primary' : '')}>{ind.label}</p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">{ind.desc}</p>
+                <div className="min-w-0">
+                  <p className={cn('text-sm font-semibold', indicator === ind.key ? 'text-primary' : '')}>{ind.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{ind.desc}</p>
+                </div>
               </button>
             ))}
           </div>
 
-          {/* Indicator-specific config */}
+          {/* Indicator-specific config - full width inputs and sliders */}
           {indicator === 'RSI' && (
             <div className="space-y-3 rounded-lg border p-4">
               <Label className="text-sm font-medium">Ngưỡng RSI</Label>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-muted-foreground w-16">Quá mua</span>
+              <div className="flex items-center gap-3">
+                <span className="shrink-0 text-xs text-muted-foreground w-14">Quá mua</span>
                 <Slider
                   value={[(indicatorConfig.rsiOverbought as number) ?? 70]}
                   min={60}
@@ -381,12 +383,12 @@ function StepCondition({
                   onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, rsiOverbought: v })}
                   className="flex-1"
                 />
-                <Badge variant="outline" className="w-10 justify-center font-mono">
+                <Badge variant="outline" className="w-10 shrink-0 justify-center font-mono text-xs">
                   {(indicatorConfig.rsiOverbought as number) ?? 70}
                 </Badge>
               </div>
-              <div className="flex items-center gap-4">
-                <span className="text-xs text-muted-foreground w-16">Quá bán</span>
+              <div className="flex items-center gap-3">
+                <span className="shrink-0 text-xs text-muted-foreground w-14">Quá bán</span>
                 <Slider
                   value={[(indicatorConfig.rsiOversold as number) ?? 30]}
                   min={10}
@@ -395,7 +397,7 @@ function StepCondition({
                   onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, rsiOversold: v })}
                   className="flex-1"
                 />
-                <Badge variant="outline" className="w-10 justify-center font-mono">
+                <Badge variant="outline" className="w-10 shrink-0 justify-center font-mono text-xs">
                   {(indicatorConfig.rsiOversold as number) ?? 30}
                 </Badge>
               </div>
@@ -405,7 +407,8 @@ function StepCondition({
           {indicator === 'MACD' && (
             <div className="space-y-3 rounded-lg border p-4">
               <Label className="text-sm font-medium">Hướng cắt</Label>
-              <div className="grid grid-cols-2 gap-2">
+              {/* Direction buttons - full width on mobile */}
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {[
                   { key: 'bullish', label: 'Cắt lên (Tín hiệu mua)', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
                   { key: 'bearish', label: 'Cắt xuống (Tín hiệu bán)', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
@@ -414,13 +417,13 @@ function StepCondition({
                     key={opt.key}
                     onClick={() => setIndicatorConfig({ ...indicatorConfig, macdDirection: opt.key })}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border p-3 transition-colors',
+                      'flex min-h-[48px] items-center gap-2 rounded-lg border p-3 transition-colors',
                       indicatorConfig.macdDirection === opt.key
                         ? opt.color
                         : 'border-border hover:bg-accent'
                     )}
                   >
-                    <opt.icon className="h-4 w-4" />
+                    <opt.icon className="h-4 w-4 shrink-0" />
                     <span className="text-xs font-medium">{opt.label}</span>
                   </button>
                 ))}
@@ -431,13 +434,13 @@ function StepCondition({
           {indicator === 'MA' && (
             <div className="space-y-3 rounded-lg border p-4">
               <Label className="text-sm font-medium">Kỳ MA</Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-none">
                 {[20, 50, 100].map((period) => (
                   <button
                     key={period}
                     onClick={() => setIndicatorConfig({ ...indicatorConfig, maPeriod: period })}
                     className={cn(
-                      'rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+                      'min-h-[40px] shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
                       indicatorConfig.maPeriod === period
                         ? 'border-primary bg-primary/10 text-primary'
                         : 'border-border text-muted-foreground hover:bg-accent'
@@ -448,7 +451,7 @@ function StepCondition({
                 ))}
               </div>
               <Label className="text-sm font-medium mt-2">Hướng</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {[
                   { key: 'above', label: 'Giá trên MA', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
                   { key: 'below', label: 'Giá dưới MA', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
@@ -457,13 +460,13 @@ function StepCondition({
                     key={opt.key}
                     onClick={() => setIndicatorConfig({ ...indicatorConfig, maDirection: opt.key })}
                     className={cn(
-                      'flex items-center gap-2 rounded-lg border p-3 transition-colors',
+                      'flex min-h-[48px] items-center gap-2 rounded-lg border p-3 transition-colors',
                       indicatorConfig.maDirection === opt.key
                         ? opt.color
                         : 'border-border hover:bg-accent'
                     )}
                   >
-                    <opt.icon className="h-4 w-4" />
+                    <opt.icon className="h-4 w-4 shrink-0" />
                     <span className="text-xs font-medium">{opt.label}</span>
                   </button>
                 ))}
@@ -482,7 +485,7 @@ function StepCondition({
                 onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, atrMultiplier: v })}
               />
               <div className="text-center">
-                <Badge variant="outline" className="font-mono">{((indicatorConfig.atrMultiplier as number) ?? 2).toFixed(1)}x</Badge>
+                <Badge variant="outline" className="font-mono text-xs">{((indicatorConfig.atrMultiplier as number) ?? 2).toFixed(1)}x</Badge>
               </div>
             </div>
           )}
@@ -498,7 +501,7 @@ function StepCondition({
                 onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, volumeIncrease: v })}
               />
               <div className="text-center">
-                <Badge variant="outline" className="font-mono">{(indicatorConfig.volumeIncrease as number) ?? 200}%</Badge>
+                <Badge variant="outline" className="font-mono text-xs">{(indicatorConfig.volumeIncrease as number) ?? 200}%</Badge>
               </div>
             </div>
           )}
@@ -512,11 +515,12 @@ function StepCondition({
           <Input
             type="number"
             placeholder="Nhập mức giá..."
+            className="h-12 text-sm sm:h-10"
             value={(indicatorConfig.targetPrice as number) ?? ''}
             onChange={(e) => setIndicatorConfig({ ...indicatorConfig, targetPrice: parseFloat(e.target.value) || 0 })}
           />
           <Label className="text-sm font-medium mt-2">Hướng</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {[
               { key: 'above', label: 'Giá vượt lên trên', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
               { key: 'below', label: 'Giá rơi xuống dưới', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
@@ -525,13 +529,13 @@ function StepCondition({
                 key={opt.key}
                 onClick={() => setIndicatorConfig({ ...indicatorConfig, priceDirection: opt.key })}
                 className={cn(
-                  'flex items-center gap-2 rounded-lg border p-3 transition-colors',
+                  'flex min-h-[48px] items-center gap-2 rounded-lg border p-3 transition-colors',
                   indicatorConfig.priceDirection === opt.key
                     ? opt.color
                     : 'border-border hover:bg-accent'
                 )}
               >
-                <opt.icon className="h-4 w-4" />
+                <opt.icon className="h-4 w-4 shrink-0" />
                 <span className="text-xs font-medium">{opt.label}</span>
               </button>
             ))}
@@ -551,10 +555,10 @@ function StepCondition({
             onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, volatilityPercent: v })}
           />
           <div className="text-center">
-            <Badge variant="outline" className="font-mono">{((indicatorConfig.volatilityPercent as number) ?? 5).toFixed(1)}%</Badge>
+            <Badge variant="outline" className="font-mono text-xs">{((indicatorConfig.volatilityPercent as number) ?? 5).toFixed(1)}%</Badge>
           </div>
           <Label className="text-sm font-medium mt-2">Khung thời gian</Label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-none">
             {[
               { key: '1h', label: '1 giờ' },
               { key: '4h', label: '4 giờ' },
@@ -565,7 +569,7 @@ function StepCondition({
                 key={tf.key}
                 onClick={() => setIndicatorConfig({ ...indicatorConfig, timeframe: tf.key })}
                 className={cn(
-                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  'min-h-[40px] shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                   indicatorConfig.timeframe === tf.key
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:bg-accent'
@@ -606,7 +610,7 @@ function StepSettings({
       exit={{ opacity: 0, x: -20 }}
       className="space-y-4"
     >
-      {/* Risk level */}
+      {/* Risk level - horizontal scrollable or stacked on mobile */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Mức rủi ro</Label>
         <div className="grid grid-cols-3 gap-2">
@@ -615,7 +619,7 @@ function StepSettings({
               key={r.key}
               onClick={() => setRiskLevel(r.key)}
               className={cn(
-                'rounded-lg border p-3 text-center transition-colors',
+                'min-h-[48px] rounded-lg border p-3 text-center transition-colors',
                 riskLevel === r.key
                   ? cn('ring-2', r.color)
                   : 'border-border hover:bg-accent'
@@ -627,10 +631,10 @@ function StepSettings({
         </div>
       </div>
 
-      {/* Action type */}
+      {/* Action type - full width cards on mobile */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Hành động</Label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {[
             { key: 'notify', label: 'Chỉ thông báo', icon: Zap, desc: 'Nhận thông báo khi kích hoạt' },
             { key: 'stoploss', label: 'Đề xuất cắt lỗ', icon: TrendingDown, desc: 'Gợi ý mức cắt lỗ phù hợp' },
@@ -639,36 +643,38 @@ function StepSettings({
               key={a.key}
               onClick={() => setActionType(a.key)}
               className={cn(
-                'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors',
+                'flex min-h-[64px] items-center gap-3 rounded-lg border p-3 text-left transition-colors',
                 actionType === a.key
                   ? 'border-primary bg-primary/10 text-primary'
                   : 'border-border text-muted-foreground hover:bg-accent'
               )}
             >
-              <a.icon className="h-5 w-5" />
-              <span className="text-xs font-semibold">{a.label}</span>
-              <span className="text-[10px] text-muted-foreground">{a.desc}</span>
+              <a.icon className="h-5 w-5 shrink-0" />
+              <div>
+                <span className="text-xs font-semibold">{a.label}</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{a.desc}</p>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Summary */}
+      {/* Summary - full width with proper text sizes */}
       <div>
         <Label className="text-sm font-medium mb-2 block">Tóm tắt</Label>
         <div className="rounded-lg border divide-y">
           {summary.map((s, i) => (
-            <div key={i} className="flex items-center justify-between px-4 py-2.5">
-              <span className="text-sm text-muted-foreground">{s.label}</span>
-              <span className="text-sm font-medium text-right max-w-[60%] truncate">{s.value}</span>
+            <div key={i} className="flex items-start justify-between gap-2 px-4 py-2.5">
+              <span className="text-xs text-muted-foreground shrink-0 sm:text-sm">{s.label}</span>
+              <span className="text-xs font-medium text-right max-w-[60%] break-words sm:text-sm">{s.value}</span>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Submit */}
+      {/* Submit button - full width, min 48px height */}
       <Button
-        className="w-full"
+        className="w-full min-h-[48px] text-sm font-semibold"
         size="lg"
         disabled={submitting}
         onClick={onSubmit}
@@ -902,12 +908,13 @@ export function AlertBuilderSheet() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && closeOverlay()}>
-      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
+      {/* Full screen on mobile, centered dialog on desktop */}
+      <DialogContent className="fixed inset-0 left-0 top-0 flex w-full max-w-full translate-x-0 translate-y-0 gap-0 rounded-none border-0 p-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:mx-auto sm:mt-0 sm:max-w-lg sm:h-auto sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:p-0">
+        <DialogHeader className="px-4 pt-4 pb-0 sm:px-6 sm:pt-6">
           <div className="flex items-center justify-between">
             <div>
-              <DialogTitle>Tạo cảnh báo mới</DialogTitle>
-              <DialogDescription className="mt-1">
+              <DialogTitle className="text-base sm:text-lg">Tạo cảnh báo mới</DialogTitle>
+              <DialogDescription className="mt-1 text-xs sm:text-sm">
                 {STEPS[step]}
               </DialogDescription>
             </div>
@@ -917,7 +924,7 @@ export function AlertBuilderSheet() {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 sm:px-6">
           <AnimatePresence mode="wait">
             {step === 0 && (
               <StepAsset
@@ -953,23 +960,25 @@ export function AlertBuilderSheet() {
           </AnimatePresence>
         </div>
 
-        {/* Navigation */}
-        <div className="flex items-center justify-between border-t px-6 py-4">
+        {/* Navigation - proper size and spacing at bottom */}
+        <div className="flex items-center justify-between border-t px-4 py-3 sm:px-6 sm:py-4">
           <Button
             variant="outline"
             onClick={() => setStep((s) => Math.max(0, s - 1))}
             disabled={step === 0}
+            className="min-h-[44px] gap-1.5 text-sm sm:min-h-0"
           >
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            Quay lại
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Quay lại</span>
           </Button>
           {step < 2 && (
             <Button
               onClick={() => setStep((s) => Math.min(2, s + 1))}
               disabled={!canNext}
+              className="min-h-[44px] gap-1.5 text-sm sm:min-h-0"
             >
-              Tiếp theo
-              <ArrowRight className="ml-1.5 h-4 w-4" />
+              <span className="hidden sm:inline">Tiếp theo</span>
+              <ArrowRight className="h-4 w-4" />
             </Button>
           )}
         </div>

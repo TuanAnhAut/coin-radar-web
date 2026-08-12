@@ -50,40 +50,48 @@ function MarketCard({ item, index }: { item: WatchlistItem; index: number }) {
 
   return (
     <motion.div
-      className="min-w-[140px] flex-shrink-0 snap-start"
+      className={cn(
+        'flex-shrink-0 snap-start',
+        // Min-width: 160px mobile, 180px tablet+
+        'min-w-[160px] sm:min-w-[180px]'
+      )}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.3, delay: index * 0.05 }}
     >
       <div
         className={cn(
-          'rounded-xl border p-3 transition-all cursor-pointer hover:shadow-md',
-          'bg-card'
+          'rounded-xl border p-3 transition-all cursor-pointer hover:shadow-md active:scale-[0.98]',
+          'bg-card h-full'
         )}
         onClick={() => openOverlay('asset-detail', { symbol: item.assetSymbol })}
       >
+        {/* Header: symbol + type badge */}
         <div className="flex items-center justify-between mb-2">
-          <div>
-            <p className="font-semibold text-sm leading-tight">{item.assetSymbol}</p>
-            <p className="text-[10px] text-muted-foreground mt-0.5 truncate max-w-[100px]">
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-sm leading-tight truncate">{item.assetSymbol}</p>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5 truncate max-w-[90px] sm:max-w-[110px]">
               {item.assetName}
             </p>
           </div>
-          <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted">
+          <span className="flex-shrink-0 text-[9px] sm:text-[10px] text-muted-foreground px-1.5 py-0.5 rounded bg-muted font-medium">
             {getTypeLabel(item.assetType)}
           </span>
         </div>
 
-        <p className="text-sm font-semibold mb-1">{formatPrice(item.price)}</p>
+        {/* Price - prominent */}
+        <p className="text-sm font-bold mb-1.5 tabular-nums">{formatPrice(item.price)}</p>
 
+        {/* Change percent badge */}
         <div className={cn(
-          'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] font-medium',
+          'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[11px] sm:text-xs font-medium',
           isPositive ? 'bg-gain-soft text-gain' : 'bg-loss-soft text-loss'
         )}>
           {isPositive ? '+' : ''}{item.changePercent.toFixed(2)}%
         </div>
 
-        <div className="h-8 mt-2">
+        {/* Mini sparkline chart */}
+        <div className="h-8 sm:h-10 mt-2">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={sparkData}>
               <defs>
@@ -142,12 +150,12 @@ export function MarketCards() {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-5 w-32" />
+          <Skeleton className="h-5 w-36" />
           <Skeleton className="h-4 w-20" />
         </div>
         <div className="flex gap-3 overflow-hidden">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="min-w-[140px] h-[140px] rounded-xl flex-shrink-0" />
+            <Skeleton key={i} className="min-w-[160px] h-[150px] rounded-xl flex-shrink-0" />
           ))}
         </div>
       </div>
@@ -161,11 +169,18 @@ export function MarketCards() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Danh sách theo dõi</h2>
+        <h2 className="text-sm sm:text-base font-semibold">Danh sách theo dõi</h2>
       </div>
       <div
         ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          'flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory',
+          // Hide scrollbar cross-browser
+          'scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none]',
+          '[&::-webkit-scrollbar]:hidden',
+          // Smooth momentum scrolling on touch devices
+          'scroll-smooth'
+        )}
       >
         {items.map((item, index) => (
           <MarketCard key={item.id} item={item} index={index} />

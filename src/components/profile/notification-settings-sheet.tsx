@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Moon, Bell, BellOff, Volume2, AlertTriangle, Newspaper, MessageSquare, TrendingUp, Settings } from 'lucide-react'
+import { Moon, Bell, Volume2, AlertTriangle, Newspaper, MessageSquare, TrendingUp, Settings } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -27,7 +27,7 @@ const notificationCategories = [
   {
     key: 'breaking',
     label: 'Tin nóng',
-    description: 'Tin tức quan trọng affecting thị trường',
+    description: 'Tin tức quan trọng ảnh hưởng thị trường',
     icon: Newspaper,
     defaultEnabled: true,
   },
@@ -82,15 +82,15 @@ export function NotificationSettingsSheet() {
         </SheetHeader>
 
         <div className="custom-scrollbar overflow-y-auto pb-24 -mx-6 px-6 space-y-6 mt-4">
-          {/* Push notifications */}
+          {/* Push notifications - min touch target 48px */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-xl border bg-card p-4"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-[48px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Bell className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -98,7 +98,7 @@ export function NotificationSettingsSheet() {
                   <p className="text-xs text-muted-foreground">Nhận thông báo trên thiết bị</p>
                 </div>
               </div>
-              <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} />
+              <Switch checked={pushEnabled} onCheckedChange={setPushEnabled} className="scale-100 sm:scale-105" />
             </div>
           </motion.div>
 
@@ -109,9 +109,9 @@ export function NotificationSettingsSheet() {
             transition={{ delay: 0.05 }}
             className="rounded-xl border bg-card p-4 space-y-4"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-[48px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
                   <Moon className="h-5 w-5 text-indigo-500" />
                 </div>
                 <div>
@@ -119,23 +119,23 @@ export function NotificationSettingsSheet() {
                   <p className="text-xs text-muted-foreground">Tắt thông báo trong khoảng thời gian</p>
                 </div>
               </div>
-              <Switch checked={quietHoursEnabled} onCheckedChange={setQuietHoursEnabled} />
+              <Switch checked={quietHoursEnabled} onCheckedChange={setQuietHoursEnabled} className="scale-100 sm:scale-105" />
             </div>
 
             {quietHoursEnabled && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="space-y-3 pl-[3.25rem]"
+                className="space-y-3 pl-0 sm:pl-[3.25rem]"
               >
-                <div className="flex items-center gap-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div className="flex-1">
                     <Label className="text-xs text-muted-foreground">Bắt đầu</Label>
                     <input
                       type="time"
                       value={quietStart}
                       onChange={(e) => setQuietStart(e.target.value)}
-                      className="mt-1 block w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="mt-1 block w-full rounded-md border bg-background px-3 py-2.5 text-sm h-11 focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                   <div className="flex-1">
@@ -144,11 +144,11 @@ export function NotificationSettingsSheet() {
                       type="time"
                       value={quietEnd}
                       onChange={(e) => setQuietEnd(e.target.value)}
-                      className="mt-1 block w-full rounded-md border bg-background px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                      className="mt-1 block w-full rounded-md border bg-background px-3 py-2.5 text-sm h-11 focus:outline-none focus:ring-2 focus:ring-primary/20"
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 min-h-[44px]">
                   <Checkbox
                     id="except-high-risk"
                     checked={exceptHighRisk}
@@ -169,9 +169,9 @@ export function NotificationSettingsSheet() {
             transition={{ delay: 0.1 }}
             className="rounded-xl border bg-card p-4 space-y-4"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-[48px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                   <Volume2 className="h-5 w-5 text-amber-500" />
                 </div>
                 <div>
@@ -179,17 +179,17 @@ export function NotificationSettingsSheet() {
                   <p className="text-xs text-muted-foreground">Âm báo khi có thông báo</p>
                 </div>
               </div>
-              <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} />
+              <Switch checked={soundEnabled} onCheckedChange={setSoundEnabled} className="scale-100 sm:scale-105" />
             </div>
 
             {soundEnabled && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
-                className="pl-[3.25rem]"
+                className="pl-0 sm:pl-[3.25rem]"
               >
-                <div className="flex items-center gap-3">
-                  <Volume2 className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-3 min-h-[44px]">
+                  <Volume2 className="h-4 w-4 text-muted-foreground shrink-0" />
                   <Slider
                     value={volume}
                     onValueChange={setVolume}
@@ -197,7 +197,7 @@ export function NotificationSettingsSheet() {
                     step={5}
                     className="flex-1"
                   />
-                  <span className="text-xs text-muted-foreground w-8 text-right">
+                  <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
                     {volume[0]}%
                   </span>
                 </div>
@@ -205,7 +205,7 @@ export function NotificationSettingsSheet() {
             )}
           </motion.div>
 
-          {/* Notification categories */}
+          {/* Notification categories - full width rows */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -215,8 +215,8 @@ export function NotificationSettingsSheet() {
             <h4 className="text-sm font-semibold mb-3">Loại thông báo</h4>
             {notificationCategories.map((cat, index) => (
               <div key={cat.key}>
-                <div className="flex items-center gap-3 py-3">
-                  <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 py-3 min-h-[48px]">
+                  <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-md bg-muted flex items-center justify-center shrink-0">
                     <cat.icon className="h-4 w-4 text-muted-foreground" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -226,6 +226,7 @@ export function NotificationSettingsSheet() {
                   <Switch
                     checked={categories[cat.key]}
                     onCheckedChange={() => toggleCategory(cat.key)}
+                    className="scale-100 sm:scale-105"
                   />
                 </div>
                 {index < notificationCategories.length - 1 && <Separator />}

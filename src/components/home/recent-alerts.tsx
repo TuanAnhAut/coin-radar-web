@@ -14,11 +14,11 @@ import type { Alert } from '@/lib/types'
 function getStatusBadge(status: Alert['status']) {
   switch (status) {
     case 'active':
-      return <Badge variant="secondary" className="text-[10px] px-1.5 py-0">Hoạt động</Badge>
+      return <Badge variant="secondary" className="text-[10px] px-1.5 py-0 shrink-0">Hoạt động</Badge>
     case 'triggered':
-      return <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Đã kích hoạt</Badge>
+      return <Badge variant="destructive" className="text-[10px] px-1.5 py-0 shrink-0">Đã kích hoạt</Badge>
     case 'disabled':
-      return <Badge variant="outline" className="text-[10px] px-1.5 py-0">Tắt</Badge>
+      return <Badge variant="outline" className="text-[10px] px-1.5 py-0 shrink-0">Tắt</Badge>
   }
 }
 
@@ -60,10 +60,10 @@ export function RecentAlerts() {
   if (loading) {
     return (
       <div className="space-y-3">
-        <Skeleton className="h-5 w-32" />
+        <Skeleton className="h-5 w-36" />
         <div className="space-y-2">
           {Array.from({ length: 3 }).map((_, i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+            <Skeleton key={i} className="h-[56px] w-full rounded-lg" />
           ))}
         </div>
       </div>
@@ -76,10 +76,11 @@ export function RecentAlerts() {
 
   return (
     <div className="space-y-3">
+      {/* Section header + "View all" button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Cảnh báo gần đây</h2>
+        <h2 className="text-sm sm:text-base font-semibold">Cảnh báo gần đây</h2>
         <button
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[32px] px-2 rounded-md hover:bg-accent/50"
           onClick={() => setCurrentView('alerts')}
         >
           Xem tất cả
@@ -92,28 +93,40 @@ export function RecentAlerts() {
           return (
             <motion.div
               key={alert.id}
-              className="flex items-center gap-3 rounded-lg border bg-card p-3 cursor-pointer transition-colors hover:bg-accent/50"
+              className={cn(
+                'flex items-center gap-2.5 sm:gap-3 rounded-lg border bg-card',
+                'cursor-pointer transition-colors hover:bg-accent/50 active:bg-accent/70',
+                // Proper padding and min-height for touch
+                'p-2.5 sm:p-3 min-h-[48px]'
+              )}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               onClick={() => openOverlay('alert-detail', { id: alert.id })}
             >
-              <div className={cn('flex-shrink-0', getRiskColor(alert.riskLevel))}>
-                <RiskIcon className="h-4 w-4" />
+              {/* Risk indicator icon */}
+              <div className={cn(
+                'flex-shrink-0 flex items-center justify-center',
+                'w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-muted/50',
+                getRiskColor(alert.riskLevel)
+              )}>
+                <RiskIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </div>
 
+              {/* Content - flex with min-w-0 to prevent overflow */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                   <span className="font-semibold text-sm">{alert.assetSymbol}</span>
                   {getStatusBadge(alert.status)}
                 </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">
+                <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
                   {alert.condition}
                 </p>
               </div>
 
-              <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                <span className="text-[10px] text-muted-foreground">
+              {/* Time + chevron */}
+              <div className="flex flex-col items-center justify-center gap-0.5 flex-shrink-0 ml-1">
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
                   {formatDistanceToNow(new Date(alert.createdAt), {
                     addSuffix: true,
                     locale: vi,

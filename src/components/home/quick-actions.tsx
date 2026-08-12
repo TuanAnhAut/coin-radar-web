@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Shield, BellPlus, TrendingUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/app-store'
+import { cn } from '@/lib/utils'
 
 const actions = [
   {
@@ -36,7 +37,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
 }
 
 export function QuickActions() {
@@ -52,7 +53,7 @@ export function QuickActions() {
 
   return (
     <motion.div
-      className="grid grid-cols-3 gap-3"
+      className="grid grid-cols-3 gap-2.5 sm:gap-3"
       variants={containerVariants}
       initial="hidden"
       animate="show"
@@ -63,16 +64,26 @@ export function QuickActions() {
           <motion.div key={action.label} variants={itemVariants}>
             <Button
               variant="outline"
-              className="h-auto w-full flex-col gap-2 py-4 px-3 hover:bg-accent"
+              className={cn(
+                'h-auto w-full flex-col gap-1.5 sm:gap-2 rounded-xl',
+                // Min touch target height on mobile
+                'min-h-[80px] sm:min-h-[88px]',
+                'py-3 sm:py-4 px-2 sm:px-3',
+                'hover:bg-accent active:bg-accent/80 transition-colors'
+              )}
               onClick={() => handleAction(action)}
             >
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                <Icon className="h-5 w-5 text-primary" />
+              <div className={cn(
+                'flex items-center justify-center rounded-lg bg-primary/10',
+                'h-9 w-9 sm:h-10 sm:w-10'
+              )}>
+                <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary" />
               </div>
               <span className="text-xs font-semibold leading-tight text-center">
                 {action.label}
               </span>
-              <span className="text-[10px] text-muted-foreground leading-tight text-center">
+              {/* Description: hide on very small screens, show on sm+ */}
+              <span className="hidden sm:block text-[10px] text-muted-foreground leading-tight text-center">
                 {action.description}
               </span>
             </Button>

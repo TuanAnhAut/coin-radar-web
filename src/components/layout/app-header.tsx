@@ -26,30 +26,31 @@ export function AppHeader() {
         'sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-xl'
       )}
     >
-      <div className="flex h-14 items-center justify-between px-4 md:px-6">
+      <div className="flex h-12 sm:h-14 items-center justify-between px-3 sm:px-4 md:px-6">
         {/* Left - Logo */}
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
             <Radar className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="font-semibold tracking-tight lg:hidden">
+          {/* Hide logo text when sidebar is visible (xl+) */}
+          <span className="font-semibold tracking-tight truncate xl:hidden">
             Coin Radar
           </span>
         </div>
 
         {/* Center - Breadcrumb (hidden on mobile) */}
-        <div className="hidden md:flex items-center gap-1.5 text-sm">
+        <div className="hidden md:flex items-center gap-1.5 text-sm absolute left-1/2 -translate-x-1/2">
           <span className="text-muted-foreground">Coin Radar</span>
           <span className="text-muted-foreground">/</span>
           <span className="font-medium">{viewLabels[currentView]}</span>
         </div>
 
         {/* Right - Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => setSearchOpen(true)}
             aria-label="Tìm kiếm"
           >
@@ -59,7 +60,7 @@ export function AppHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="relative h-9 w-9"
+            className="relative h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => setNotificationsOpen(true)}
             aria-label="Thông báo"
           >
@@ -77,7 +78,7 @@ export function AppHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9"
+            className="h-10 w-10 sm:h-9 sm:w-9"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             aria-label="Chuyển giao diện"
           >

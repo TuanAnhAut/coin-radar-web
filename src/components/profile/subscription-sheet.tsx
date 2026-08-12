@@ -1,7 +1,7 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Check, Crown, Star, Zap, Shield, MessageSquare, Brain, Headphones, ArrowRight } from 'lucide-react'
+import { Check, Crown, ArrowRight } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -82,6 +82,15 @@ const plans: Plan[] = [
   },
 ]
 
+const comparisonData = [
+  ['Cảnh báo', '5', 'Không giới hạn', 'Không giới hạn'],
+  ['Mã theo dõi', '10', 'Không giới hạn', 'Không giới hạn'],
+  ['Chat chuyên gia', '—', '✓', '✓'],
+  ['Phân tích AI', '—', '✓', '✓'],
+  ['Quét rủi ro', 'Cơ bản', 'Chuyên sâu', 'Chuyên sâu'],
+  ['Hỗ trợ', 'Email', 'Ưu tiên', '24/7'],
+]
+
 export function SubscriptionSheet() {
   const { activeOverlay, closeOverlay } = useAppStore()
 
@@ -106,8 +115,8 @@ export function SubscriptionSheet() {
             </Badge>
           </motion.div>
 
-          {/* Plan cards */}
-          <div className="space-y-4">
+          {/* Plan cards - stack on mobile, 3 cols on desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans.map((plan, planIndex) => (
               <motion.div
                 key={plan.name}
@@ -117,9 +126,9 @@ export function SubscriptionSheet() {
               >
                 <div
                   className={cn(
-                    'rounded-xl border p-5 transition-shadow hover:shadow-md',
+                    'rounded-xl border p-4 sm:p-5 transition-shadow hover:shadow-md h-full flex flex-col',
                     plan.highlight
-                      ? 'border-primary/50 bg-primary/5 shadow-sm'
+                      ? 'border-primary/50 bg-primary/5 shadow-sm ring-1 ring-primary/20'
                       : 'bg-card'
                   )}
                 >
@@ -140,23 +149,23 @@ export function SubscriptionSheet() {
                     )}
                   </div>
 
-                  {/* Price */}
-                  <p className={cn('text-xl font-bold', plan.highlight ? 'text-primary' : '')}>
+                  {/* Price - large and prominent */}
+                  <p className={cn('text-xl sm:text-2xl font-bold', plan.highlight ? 'text-primary' : '')}>
                     {plan.price}
                   </p>
                   {plan.priceNote && (
                     <p className="text-xs text-muted-foreground mt-0.5">{plan.priceNote}</p>
                   )}
 
-                  {/* Features */}
+                  {/* Features - checkmarks properly aligned */}
                   <Separator className="my-3" />
-                  <ul className="space-y-2">
+                  <ul className="space-y-2.5 flex-1">
                     {plan.features.map((feature) => (
-                      <li key={feature.label} className="flex items-center gap-2">
+                      <li key={feature.label} className="flex items-start gap-2.5">
                         {feature.included ? (
-                          <Check className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <Check className="h-4 w-4 text-emerald-500 shrink-0 mt-0.5" />
                         ) : (
-                          <span className="h-4 w-4 flex items-center justify-center shrink-0">
+                          <span className="h-4 w-4 flex items-center justify-center shrink-0 mt-0.5">
                             <span className="h-3 w-3 rounded-full border-2 border-muted-foreground/30" />
                           </span>
                         )}
@@ -172,16 +181,12 @@ export function SubscriptionSheet() {
                     ))}
                   </ul>
 
-                  {/* CTA */}
+                  {/* CTA - full width on mobile */}
                   {plan.cta && (
                     <Button
-                      className={cn('w-full mt-4 gap-2', plan.ctaVariant === 'outline' ? '' : '')}
+                      className={cn('w-full mt-4 gap-2 h-11 sm:h-12', plan.ctaVariant === 'outline' ? '' : '')}
                       variant={plan.ctaVariant === 'outline' ? 'outline' : 'default'}
-                      onClick={() =>
-                        plan.cta === 'Liên hệ'
-                          ? toast.info('Tính năng sắp ra mắt')
-                          : toast.info('Tính năng sắp ra mắt')
-                      }
+                      onClick={() => toast.info('Tính năng sắp ra mắt')}
                     >
                       {plan.cta}
                       <ArrowRight className="h-4 w-4" />
@@ -192,7 +197,7 @@ export function SubscriptionSheet() {
             ))}
           </div>
 
-          {/* Feature comparison table */}
+          {/* Feature comparison table - horizontal scroll on mobile with sticky first column */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -200,30 +205,23 @@ export function SubscriptionSheet() {
             className="rounded-xl border bg-card p-4"
           >
             <h4 className="text-sm font-semibold mb-3">So sánh chi tiết</h4>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
+            <div className="overflow-x-auto -mx-4 px-4">
+              <table className="w-full text-sm min-w-[400px]">
                 <thead>
                   <tr>
-                    <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium">Tính năng</th>
-                    <th className="text-center py-2 px-3 text-xs text-muted-foreground font-medium">Free</th>
-                    <th className="text-center py-2 px-3 text-xs text-primary font-medium bg-primary/5 rounded-t-md">Pro</th>
-                    <th className="text-center py-2 pl-3 text-xs text-muted-foreground font-medium">Enterprise</th>
+                    <th className="text-left py-2 pr-4 text-xs text-muted-foreground font-medium sticky left-0 bg-card z-10">Tính năng</th>
+                    <th className="text-center py-2 px-3 text-xs text-muted-foreground font-medium min-w-[80px]">Free</th>
+                    <th className="text-center py-2 px-3 text-xs text-primary font-medium bg-primary/5 rounded-t-md min-w-[100px]">Pro</th>
+                    <th className="text-center py-2 pl-3 text-xs text-muted-foreground font-medium min-w-[100px]">Enterprise</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {[
-                    ['Cảnh báo', '5', 'Không giới hạn', 'Không giới hạn'],
-                    ['Mã theo dõi', '10', 'Không giới hạn', 'Không giới hạn'],
-                    ['Chat chuyên gia', '—', '✓', '✓'],
-                    ['Phân tích AI', '—', '✓', '✓'],
-                    ['Quét rủi ro', 'Cơ bản', 'Chuyên sâu', 'Chuyên sâu'],
-                    ['Hỗ trợ', 'Email', 'Ưu tiên', '24/7'],
-                  ].map(([feature, free, pro, enterprise]) => (
+                  {comparisonData.map(([feature, free, pro, enterprise]) => (
                     <tr key={feature as string}>
-                      <td className="py-2 pr-4 text-xs">{feature as string}</td>
-                      <td className="py-2 px-3 text-xs text-center text-muted-foreground">{free as string}</td>
-                      <td className="py-2 px-3 text-xs text-center bg-primary/5">{pro as string}</td>
-                      <td className="py-2 pl-3 text-xs text-center text-muted-foreground">{enterprise as string}</td>
+                      <td className="py-2.5 pr-4 text-xs font-medium sticky left-0 bg-card z-10">{feature as string}</td>
+                      <td className="py-2.5 px-3 text-xs text-center text-muted-foreground">{free as string}</td>
+                      <td className="py-2.5 px-3 text-xs text-center bg-primary/5">{pro as string}</td>
+                      <td className="py-2.5 pl-3 text-xs text-center text-muted-foreground">{enterprise as string}</td>
                     </tr>
                   ))}
                 </tbody>

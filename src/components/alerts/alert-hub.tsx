@@ -114,7 +114,7 @@ function AlertCard({ alert, onClick }: { alert: Alert; onClick: () => void }) {
       transition={{ duration: 0.2 }}
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-lg border border-l-4 bg-card p-4 transition-colors hover:bg-accent/50',
+        'cursor-pointer rounded-lg border border-l-4 bg-card p-3 transition-colors hover:bg-accent/50 sm:p-4',
         riskBorderClass(alert.riskLevel)
       )}
     >
@@ -132,7 +132,7 @@ function AlertCard({ alert, onClick }: { alert: Alert; onClick: () => void }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">{alert.assetSymbol}</span>
+            <span className="text-sm font-semibold sm:text-base">{alert.assetSymbol}</span>
             <span className="text-sm text-muted-foreground truncate">
               {alert.assetName}
             </span>
@@ -140,28 +140,28 @@ function AlertCard({ alert, onClick }: { alert: Alert; onClick: () => void }) {
           <p className="mt-1 text-sm text-foreground/80 line-clamp-2">
             {alert.conditionDescription}
           </p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
             <Badge
               variant="outline"
-              className={cn('text-xs px-1.5 py-0', riskBadgeClass(alert.riskLevel))}
+              className={cn('text-[11px] px-1.5 py-0 sm:text-xs', riskBadgeClass(alert.riskLevel))}
             >
               {riskLabel(alert.riskLevel)}
             </Badge>
             <Badge
               variant="outline"
-              className={cn('text-xs px-1.5 py-0', statusBadgeClass(alert.status))}
+              className={cn('text-[11px] px-1.5 py-0 sm:text-xs', statusBadgeClass(alert.status))}
             >
               {statusLabel(alert.status)}
             </Badge>
             {alert.indicatorType && (
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[11px] text-muted-foreground sm:text-xs">
                 {alert.indicatorType}
               </span>
             )}
           </div>
         </div>
         <div className="flex-shrink-0 text-right">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-[11px] text-muted-foreground sm:text-xs">
             {alert.triggeredAt
               ? relativeTime(alert.triggeredAt)
               : relativeTime(alert.createdAt)}
@@ -174,7 +174,7 @@ function AlertCard({ alert, onClick }: { alert: Alert; onClick: () => void }) {
 
 function AlertCardSkeleton() {
   return (
-    <div className="rounded-lg border border-l-4 border-l-muted bg-card p-4">
+    <div className="rounded-lg border border-l-4 border-l-muted bg-card p-3 sm:p-4">
       <div className="flex items-start gap-3">
         <Skeleton className="h-8 w-8 rounded-md" />
         <div className="flex-1 space-y-2">
@@ -215,17 +215,17 @@ function EmptyState({ status }: { status: TabStatus }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col items-center justify-center py-16"
+      className="flex flex-col items-center justify-center px-4 py-16 text-center"
     >
       <div className="rounded-full bg-muted p-6">
         <BellOff className="h-10 w-10 text-muted-foreground" />
       </div>
       <h3 className="mt-4 text-lg font-semibold">{messages[status].title}</h3>
-      <p className="mt-1 text-sm text-muted-foreground text-center max-w-xs">
+      <p className="mt-1 text-sm text-muted-foreground max-w-xs">
         {messages[status].desc}
       </p>
       <Button
-        className="mt-4"
+        className="mt-4 min-h-[48px]"
         onClick={() => openOverlay('alert-templates')}
       >
         Tạo cảnh báo đầu tiên
@@ -293,34 +293,35 @@ export function AlertHub() {
 
       {/* Sub-tabs */}
       <Tabs value={tab} onValueChange={(v) => setTab(v as TabStatus)}>
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="active" className="gap-1.5">
+        {/* Scrollable on mobile */}
+        <TabsList className="w-full">
+          <TabsTrigger value="active" className="min-h-[44px] gap-1.5 px-3 text-xs sm:text-sm">
             <Bell className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Đang bật</span>
             <span className="sm:hidden">Bật</span>
           </TabsTrigger>
-          <TabsTrigger value="triggered" className="gap-1.5">
+          <TabsTrigger value="triggered" className="min-h-[44px] gap-1.5 px-3 text-xs sm:text-sm">
             <Zap className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Đã kích hoạt</span>
             <span className="sm:hidden">K.Hoạt</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="gap-1.5">
+          <TabsTrigger value="history" className="min-h-[44px] gap-1.5 px-3 text-xs sm:text-sm">
             <History className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Lịch sử</span>
             <span className="sm:hidden">L.Sử</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* Filter bar */}
+        {/* Filter bar - horizontal scrollable on mobile, wrap on desktop */}
         <div className="mt-3 space-y-2">
           {/* Asset type filter */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none sm:flex-wrap">
             {ASSET_FILTERS.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setAssetFilter(f.key)}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-medium transition-colors sm:shrink',
                   assetFilter === f.key
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-background text-muted-foreground hover:bg-accent'
@@ -342,13 +343,13 @@ export function AlertHub() {
           </div>
 
           {/* Risk level filter */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none sm:flex-wrap">
             {RISK_FILTERS.map((f) => (
               <button
                 key={f.key}
                 onClick={() => setRiskFilter(f.key)}
                 className={cn(
-                  'inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                  'inline-flex min-h-[36px] shrink-0 items-center gap-1 rounded-full border px-3 text-xs font-medium transition-colors sm:shrink',
                   riskFilter === f.key
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border bg-background text-muted-foreground hover:bg-accent'

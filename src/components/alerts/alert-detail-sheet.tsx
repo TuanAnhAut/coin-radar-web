@@ -24,6 +24,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -40,6 +47,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { useAppStore } from '@/store/app-store'
+import { useIsMobile } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import type { Alert, AlertRiskLevel, AlertStatus } from '@/lib/types'
 
@@ -101,7 +109,7 @@ function relativeTime(dateStr: string): string {
   const diffMs = now.getTime() - date.getTime()
   const diffMin = Math.floor(diffMs / 60000)
   const diffHr = Math.floor(diffMs / 3600000)
-  const diffDay = Math.floor(diffMs / 8640000)
+  const diffDay = Math.floor(diffMs / 86400000)
 
   if (diffMin < 1) return 'Vừa xong'
   if (diffMin < 60) return `${diffMin} phút trước`
@@ -129,7 +137,6 @@ function ProximityGauge({
   threshold: number
   label: string
 }) {
-  // Calculate how close to trigger (0-100)
   let proximity = 0
   if (current && threshold) {
     const distance = Math.abs(current - threshold)
@@ -155,7 +162,7 @@ function ProximityGauge({
       <Progress
         value={proximity}
         className={cn(
-          'h-2',
+          'h-2 w-full',
           proximity > 80 && '[&>div]:bg-destructive',
           proximity > 50 && proximity <= 80 && '[&>div]:bg-amber-500',
           proximity <= 50 && '[&>div]:bg-emerald-500'
@@ -234,6 +241,7 @@ function DetailSkeleton() {
 
 export function AlertDetailSheet() {
   const { activeOverlay, overlayData, openOverlay, closeOverlay } = useAppStore()
+  const isMobile = useIsMobile()
   const open = activeOverlay === 'alert-detail'
   const alertId = (overlayData?.id as string) ?? ''
 
@@ -318,235 +326,249 @@ export function AlertDetailSheet() {
     return { current: alert.value, threshold: alert.threshold }
   }, [alert])
 
-  return (
-    <Sheet open={open} onOpenChange={(v) => !v && closeOverlay()}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col">
-        <SheetHeader>
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-muted p-2.5">
-              {alert ? indicatorIcon(alert.indicatorType) : <Skeleton className="h-5 w-5 rounded" />}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <SheetTitle className="truncate">
-                  {loading ? <Skeleton className="h-5 w-32" /> : alert?.assetSymbol}
-                </SheetTitle>
-                {alert && (
-                  <Badge
-                    variant="outline"
-                    className={cn('text-xs', statusBadgeClass(alert.status))}
-                  >
-                    {statusLabel(alert.status)}
-                  </Badge>
-                )}
-              </div>
-              <SheetDescription className="mt-1">
-                {loading ? <Skeleton className="h-4 w-48 mt-1" /> : alert?.condition ?? ''}
-              </SheetDescription>
+  const title = alert?.assetSymbol ?? 'Chi tiết cảnh báo'
+  const desc = alert?.condition ?? ''
+
+  const renderContent = () => (
+    <div className="flex flex-col gap-5">
+      {loading ? (
+        <DetailSkeleton />
+      ) : !alert ? (
+        <p className="py-8 text-center text-muted-foreground">Không tìm thấy cảnh báo</p>
+      ) : (
+        <>
+          {/* Condition description - proper text sizing */}
+          <div className="rounded-lg bg-muted/50 p-4">
+            <p className="text-sm leading-relaxed">{alert.conditionDescription}</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {alert.indicatorType && (
+                <Badge variant="outline" className="text-xs">
+                  {alert.indicatorType}
+                </Badge>
+              )}
+              <Badge
+                variant="outline"
+                className={cn('text-xs', riskBadgeClass(alert.riskLevel))}
+              >
+                Rủi ro {riskLabel(alert.riskLevel)}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {alert.type === 'default' ? 'Mẫu mặc định' : 'Tùy chỉnh'}
+              </Badge>
             </div>
           </div>
-        </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar mt-4 space-y-5">
-          {loading ? (
-            <DetailSkeleton />
-          ) : !alert ? (
-            <p className="text-center text-muted-foreground py-8">Không tìm thấy cảnh báo</p>
-          ) : (
-            <>
-              {/* Condition description */}
-              <div className="rounded-lg bg-muted/50 p-4">
-                <p className="text-sm leading-relaxed">{alert.conditionDescription}</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {alert.indicatorType && (
-                    <Badge variant="outline" className="text-xs">
-                      {alert.indicatorType}
+          {/* Status timeline - vertical on mobile */}
+          <div>
+            <h3 className="text-sm font-semibold mb-3">Trạng thái</h3>
+            <div className="space-y-0">
+              <TimelineItem
+                date={alert.createdAt}
+                label="Tạo cảnh báo"
+                status="completed"
+              />
+              {alert.triggeredAt ? (
+                <TimelineItem
+                  date={alert.triggeredAt}
+                  label="Đã kích hoạt"
+                  status="current"
+                />
+              ) : (
+                <TimelineItem
+                  date={new Date().toISOString()}
+                  label="Chờ kích hoạt"
+                  status={alert.status === 'active' ? 'current' : 'pending'}
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Proximity gauge - full width */}
+          {gaugeData && alert.status === 'active' && (
+            <div>
+              <h3 className="text-sm font-semibold mb-3">Tiến trình điều kiện</h3>
+              <ProximityGauge
+                current={gaugeData.current}
+                threshold={gaugeData.threshold}
+                label={alert.indicatorType ? `Giá trị ${alert.indicatorType}` : 'Giá trị hiện tại'}
+              />
+            </div>
+          )}
+
+          {/* Triggered info */}
+          {alert.status === 'triggered' && alert.triggeredAt && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4"
+            >
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+                  Đã kích hoạt
+                </span>
+              </div>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Cảnh báo được kích hoạt vào {relativeTime(alert.triggeredAt)}.
+                Hãy kiểm tra lại vị thế và chiến lược giao dịch của bạn.
+              </p>
+            </motion.div>
+          )}
+
+          {/* Risk assessment - text should wrap properly */}
+          <div className="rounded-lg border p-4">
+            <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4" />
+              Đánh giá rủi ro
+            </h3>
+            <div className={cn(
+              'rounded-md p-3 text-sm leading-relaxed break-words',
+              alert.riskLevel === 'high' && 'bg-destructive/5 text-destructive/80',
+              alert.riskLevel === 'medium' && 'bg-amber-500/5 text-amber-700 dark:text-amber-400',
+              alert.riskLevel === 'low' && 'bg-emerald-500/5 text-emerald-700 dark:text-emerald-400',
+            )}>
+              {riskExplanation(alert.riskLevel)}
+            </div>
+          </div>
+
+          {/* Related asset info */}
+          <div className="rounded-lg border p-4">
+            <h3 className="text-sm font-semibold mb-3">Thông tin tài sản</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <span className="text-muted-foreground">Mã</span>
+                <p className="font-semibold">{alert.assetSymbol}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Tên</span>
+                <p className="font-medium truncate">{alert.assetName}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Tạo lúc</span>
+                <p className="text-xs mt-0.5">{formatDate(alert.createdAt)}</p>
+              </div>
+              {alert.triggeredAt && (
+                <div>
+                  <span className="text-muted-foreground">Kích hoạt lúc</span>
+                  <p className="text-xs mt-0.5">{formatDate(alert.triggeredAt)}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons - stacked full width on mobile, grid on desktop */}
+          <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2">
+            <Button
+              variant="outline"
+              className="min-h-[48px] w-full gap-1.5"
+              onClick={handleEdit}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Chỉnh sửa
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-[48px] w-full gap-1.5"
+              onClick={handleToggle}
+              disabled={toggling}
+            >
+              {alert.status === 'active' ? (
+                <><PowerOff className="h-3.5 w-3.5" /> Tạm tắt</>
+              ) : (
+                <><Power className="h-3.5 w-3.5" /> Bật lại</>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              className="min-h-[48px] w-full gap-1.5"
+              onClick={handleCreateSimilar}
+            >
+              <Copy className="h-3.5 w-3.5" />
+              Tạo tương tự
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="min-h-[48px] w-full gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+                  disabled={deleting}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Xóa
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Xóa cảnh báo?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Hành động này không thể hoàn tác. Cảnh báo &quot;{alert.assetSymbol} - {alert.condition}&quot; sẽ bị xóa vĩnh viễn.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Xóa
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      {/* Mobile: Drawer from bottom */}
+      <Drawer open={isMobile && open} onOpenChange={(v) => !v && closeOverlay()}>
+        <DrawerContent className="max-h-[92vh]">
+          <DrawerHeader className="px-4 pt-2 text-left">
+            <DrawerTitle className="text-base line-clamp-1">{title}</DrawerTitle>
+            <DrawerDescription className="text-xs line-clamp-1">{desc}</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
+            {renderContent()}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Desktop: Sheet from right */}
+      <Sheet open={!isMobile && open} onOpenChange={(v) => !v && closeOverlay()}>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col p-0">
+          <SheetHeader className="px-6 pt-6">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg bg-muted p-2.5">
+                {alert ? indicatorIcon(alert.indicatorType) : <Skeleton className="h-5 w-5 rounded" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <SheetTitle className="truncate">
+                    {loading ? <Skeleton className="h-5 w-32" /> : alert?.assetSymbol}
+                  </SheetTitle>
+                  {alert && (
+                    <Badge
+                      variant="outline"
+                      className={cn('text-xs', statusBadgeClass(alert.status))}
+                    >
+                      {statusLabel(alert.status)}
                     </Badge>
                   )}
-                  <Badge
-                    variant="outline"
-                    className={cn('text-xs', riskBadgeClass(alert.riskLevel))}
-                  >
-                    Rủi ro {riskLabel(alert.riskLevel)}
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    {alert.type === 'default' ? 'Mẫu mặc định' : 'Tùy chỉnh'}
-                  </Badge>
                 </div>
+                <SheetDescription className="mt-1">
+                  {loading ? <Skeleton className="h-4 w-48 mt-1" /> : alert?.condition ?? ''}
+                </SheetDescription>
               </div>
-
-              {/* Status timeline */}
-              <div>
-                <h3 className="text-sm font-semibold mb-3">Trạng thái</h3>
-                <div className="space-y-0">
-                  <TimelineItem
-                    date={alert.createdAt}
-                    label="Tạo cảnh báo"
-                    status="completed"
-                  />
-                  {alert.triggeredAt ? (
-                    <TimelineItem
-                      date={alert.triggeredAt}
-                      label="Đã kích hoạt"
-                      status="current"
-                    />
-                  ) : (
-                    <TimelineItem
-                      date={new Date().toISOString()}
-                      label="Chờ kích hoạt"
-                      status={alert.status === 'active' ? 'current' : 'pending'}
-                    />
-                  )}
-                </div>
-              </div>
-
-              {/* Proximity gauge */}
-              {gaugeData && alert.status === 'active' && (
-                <div>
-                  <h3 className="text-sm font-semibold mb-3">Tiến trình điều kiện</h3>
-                  <ProximityGauge
-                    current={gaugeData.current}
-                    threshold={gaugeData.threshold}
-                    label={alert.indicatorType ? `Giá trị ${alert.indicatorType}` : 'Giá trị hiện tại'}
-                  />
-                </div>
-              )}
-
-              {/* Triggered info */}
-              {alert.status === 'triggered' && alert.triggeredAt && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4"
-                >
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                      Đã kích hoạt
-                    </span>
-                  </div>
-                  <p className="mt-1.5 text-sm text-muted-foreground">
-                    Cảnh báo được kích hoạt vào {relativeTime(alert.triggeredAt)}.
-                    Hãy kiểm tra lại vị thế và chiến lược giao dịch của bạn.
-                  </p>
-                </motion.div>
-              )}
-
-              {/* Risk assessment */}
-              <div className="rounded-lg border p-4">
-                <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4" />
-                  Đánh giá rủi ro
-                </h3>
-                <div className={cn(
-                  'rounded-md p-3 text-sm',
-                  alert.riskLevel === 'high' && 'bg-destructive/5 text-destructive/80',
-                  alert.riskLevel === 'medium' && 'bg-amber-500/5 text-amber-700 dark:text-amber-400',
-                  alert.riskLevel === 'low' && 'bg-emerald-500/5 text-emerald-700 dark:text-emerald-400',
-                )}>
-                  {riskExplanation(alert.riskLevel)}
-                </div>
-              </div>
-
-              {/* Related asset info */}
-              <div className="rounded-lg border p-4">
-                <h3 className="text-sm font-semibold mb-3">Thông tin tài sản</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Mã</span>
-                    <p className="font-semibold">{alert.assetSymbol}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Tên</span>
-                    <p className="font-medium truncate">{alert.assetName}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Tạo lúc</span>
-                    <p className="text-xs mt-0.5">{formatDate(alert.createdAt)}</p>
-                  </div>
-                  {alert.triggeredAt && (
-                    <div>
-                      <span className="text-muted-foreground">Kích hoạt lúc</span>
-                      <p className="text-xs mt-0.5">{formatDate(alert.triggeredAt)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Action buttons */}
-        {!loading && alert && (
-          <div className="border-t pt-4 space-y-2 mt-auto">
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleEdit}
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Chỉnh sửa
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleToggle}
-                disabled={toggling}
-              >
-                {alert.status === 'active' ? (
-                  <><PowerOff className="h-3.5 w-3.5" /> Tạm tắt</>
-                ) : (
-                  <><Power className="h-3.5 w-3.5" /> Bật lại</>
-                )}
-              </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="gap-1.5"
-                onClick={handleCreateSimilar}
-              >
-                <Copy className="h-3.5 w-3.5" />
-                Tạo tương tự
-              </Button>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
-                    disabled={deleting}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Xóa
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Xóa cảnh báo?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Hành động này không thể hoàn tác. Cảnh báo &quot;{alert.assetSymbol} - {alert.condition}&quot; sẽ bị xóa vĩnh viễn.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Hủy</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDelete}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Xóa
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
+          </SheetHeader>
+          <div className="flex-1 overflow-y-auto custom-scrollbar mt-4 px-6 pb-6">
+            {renderContent()}
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

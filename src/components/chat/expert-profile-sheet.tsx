@@ -6,7 +6,6 @@ import { Star, MessageCircle, UserPlus, FileText, TrendingUp, Clock, Award, BarC
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
 import {
   Sheet,
   SheetContent,
@@ -57,12 +56,12 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-6 px-6">
       <div className="flex flex-col items-center text-center gap-3">
-        <Skeleton className="h-24 w-24 rounded-full" />
+        <Skeleton className="h-20 w-20 sm:h-24 sm:w-24 rounded-full" />
         <Skeleton className="h-6 w-36" />
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-5 w-28" />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-20 rounded-xl" />
         ))}
@@ -140,14 +139,14 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
     },
     {
       icon: FileText,
-      label: 'Phân tích gần đây',
+      label: 'Phân tích',
       value: `${expert.recentAnalysisCount}`,
       sub: 'bài',
       color: 'text-blue-500',
     },
     {
       icon: TrendingUp,
-      label: 'Tỷ lệ chính xác',
+      label: 'Chính xác',
       value: `${expert.accuracyPercent}%`,
       sub: '',
       color: 'text-emerald-500',
@@ -163,7 +162,7 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
 
   return (
     <div className="custom-scrollbar overflow-y-auto pb-24 -mx-6 px-6 space-y-6">
-      {/* Profile header */}
+      {/* Profile header - avatar large centered on mobile */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -172,7 +171,7 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         <div className="relative">
           <div
             className={cn(
-              'h-24 w-24 rounded-full flex items-center justify-center text-white font-bold text-3xl shadow-lg',
+              'h-20 w-20 sm:h-24 sm:w-24 rounded-full flex items-center justify-center text-white font-bold text-2xl sm:text-3xl shadow-lg',
               getAvatarColor(expert.id)
             )}
           >
@@ -180,13 +179,13 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
           </div>
           <span
             className={cn(
-              'absolute bottom-1 right-1 h-4 w-4 rounded-full border-3 border-white dark:border-card',
+              'absolute bottom-0.5 right-0.5 sm:bottom-1 sm:right-1 h-3.5 w-3.5 sm:h-4 sm:w-4 rounded-full border-2 border-white dark:border-card',
               statusConfig.dot
             )}
           />
         </div>
         <div>
-          <h3 className="text-xl font-bold">{expert.name}</h3>
+          <h3 className="text-lg sm:text-xl font-bold">{expert.name}</h3>
           <p className="text-sm text-muted-foreground mt-0.5">{expert.specialty}</p>
         </div>
         <Badge
@@ -197,17 +196,17 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         </Badge>
       </motion.div>
 
-      {/* Stats grid */}
+      {/* Stats grid - 2 cols on mobile, 4 cols on desktop */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 gap-3"
+        className="grid grid-cols-2 lg:grid-cols-4 gap-3"
       >
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="rounded-xl border bg-card p-3 text-center"
+            className="rounded-xl border bg-card p-3 sm:p-4 text-center"
           >
             <stat.icon className={cn('h-5 w-5 mx-auto mb-1.5', stat.color)} />
             <p className="text-lg font-bold">{stat.value}</p>
@@ -219,7 +218,7 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         ))}
       </motion.div>
 
-      {/* Bio */}
+      {/* Bio - proper line height and sizing */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -230,7 +229,7 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         <p className="text-sm text-muted-foreground leading-relaxed">{expert.bio}</p>
       </motion.div>
 
-      {/* Recent analyses */}
+      {/* Recent analyses - proper list spacing */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -241,14 +240,14 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
           <BarChart3 className="h-4 w-4 text-muted-foreground" />
           Phân tích gần đây
         </h4>
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {recentAnalyses.map((item, i) => (
-            <div key={i} className="flex items-start justify-between gap-2">
-              <div className="flex items-start gap-2 min-w-0">
+            <div key={i} className="flex items-start justify-between gap-3 min-h-[44px]">
+              <div className="flex items-start gap-2.5 min-w-0">
                 <div className="h-2 w-2 rounded-full bg-primary mt-1.5 shrink-0" />
                 <p className="text-sm truncate">{item.title}</p>
               </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+              <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1 shrink-0">
                 <Clock className="h-3 w-3" />
                 {item.date}
               </span>
@@ -257,15 +256,15 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         </div>
       </motion.div>
 
-      {/* Action buttons */}
+      {/* CTA buttons - full width stacked on mobile */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25 }}
-        className="flex gap-3"
+        className="flex flex-col sm:flex-row gap-3"
       >
         <Button
-          className="flex-1 gap-2"
+          className="w-full sm:flex-1 gap-2 h-12"
           size="lg"
           onClick={() => toast.info('Tính năng sắp ra mắt')}
         >
@@ -274,7 +273,7 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         </Button>
         <Button
           variant="outline"
-          className="flex-1 gap-2"
+          className="w-full sm:flex-1 gap-2 h-12"
           size="lg"
           onClick={() => toast.success('Đã theo dõi chuyên gia')}
         >

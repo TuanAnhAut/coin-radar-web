@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, TrendingUp, TrendingDown, Wallet, ArrowUpRight, ArrowDownRight } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import { Plus, ArrowUpRight, ArrowDownRight, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Progress } from '@/components/ui/progress'
@@ -104,7 +103,7 @@ export function PortfolioSheet() {
         const json = await res.json()
         setPortfolio(json.data || null)
       } catch {
-        toast.error('Không thể tải danh mục đầu tư')
+        toast.error('Không thể tải danh mục theo dõi')
       } finally {
         setLoading(false)
       }
@@ -116,7 +115,7 @@ export function PortfolioSheet() {
     <Sheet open={isOpen} onOpenChange={(open) => !open && closeOverlay()}>
       <SheetContent side="bottom" className="h-[85vh] sm:max-h-[85vh] rounded-t-2xl">
         <SheetHeader className="text-left">
-          <SheetTitle>Quản lý danh mục đầu tư</SheetTitle>
+          <SheetTitle>Danh mục theo dõi</SheetTitle>
         </SheetHeader>
 
         {loading ? (
@@ -125,7 +124,7 @@ export function PortfolioSheet() {
           <PortfolioContent portfolio={portfolio} />
         ) : (
           <div className="text-center py-12 text-muted-foreground">
-            Không có dữ liệu danh mục
+            Chưa có mã theo dõi nào
           </div>
         )}
       </SheetContent>
@@ -162,15 +161,15 @@ function PortfolioContent({ portfolio }: { portfolio: Portfolio }) {
         {/* Total value */}
         <div className="rounded-xl border bg-card p-4 sm:col-span-3">
           <div className="flex items-center gap-2 mb-1">
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground">Tổng giá trị</span>
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Tổng giá trị theo dõi</span>
           </div>
           <p className="text-2xl font-bold">{formatCurrency(portfolio.totalValue)}</p>
         </div>
 
-        {/* Daily P&L */}
+        {/* Daily price change */}
         <div className="rounded-xl border bg-card p-4">
-          <span className="text-xs text-muted-foreground">Lãi/Lỗ ngày</span>
+          <span className="text-xs text-muted-foreground">Biến động giá ngày</span>
           <div className="flex items-center gap-1 mt-1">
             {portfolio.dailyChange >= 0 ? (
               <ArrowUpRight className="h-4 w-4 text-emerald-500" />
@@ -197,9 +196,9 @@ function PortfolioContent({ portfolio }: { portfolio: Portfolio }) {
           </span>
         </div>
 
-        {/* Monthly P&L */}
+        {/* Monthly price change */}
         <div className="rounded-xl border bg-card p-4">
-          <span className="text-xs text-muted-foreground">Lãi/Lỗ tháng</span>
+          <span className="text-xs text-muted-foreground">Biến động giá tháng</span>
           <div className="flex items-center gap-1 mt-1">
             {portfolio.monthlyChange >= 0 ? (
               <ArrowUpRight className="h-4 w-4 text-emerald-500" />
@@ -228,7 +227,7 @@ function PortfolioContent({ portfolio }: { portfolio: Portfolio }) {
 
         {/* Risk score */}
         <div className="rounded-xl border bg-card p-4">
-          <span className="text-xs text-muted-foreground">Điểm rủi ro</span>
+          <span className="text-xs text-muted-foreground">Điểm rủi ro thị trường</span>
           <p className="text-lg font-bold mt-1">{portfolio.riskScore}/100</p>
           <Progress value={portfolio.riskScore} className="h-1.5 mt-1" />
         </div>
@@ -273,17 +272,17 @@ function PortfolioContent({ portfolio }: { portfolio: Portfolio }) {
         className="rounded-xl border bg-card overflow-hidden"
       >
         <div className="p-4 pb-2">
-          <h4 className="text-sm font-semibold">Danh sách tài sản</h4>
+          <h4 className="text-sm font-semibold">Danh sách theo dõi</h4>
         </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="text-xs">Mã</TableHead>
-                <TableHead className="text-xs">SL</TableHead>
-                <TableHead className="text-xs text-right">Giá TB</TableHead>
-                <TableHead className="text-xs text-right">Hiện tại</TableHead>
-                <TableHead className="text-xs text-right">Lãi/Lỗ</TableHead>
+                <TableHead className="text-xs">SL nắm giữ</TableHead>
+                <TableHead className="text-xs text-right">Giá nhập</TableHead>
+                <TableHead className="text-xs text-right">Giá hiện tại</TableHead>
+                <TableHead className="text-xs text-right">Biến động</TableHead>
                 <TableHead className="text-xs text-right">%</TableHead>
               </TableRow>
             </TableHeader>
@@ -338,7 +337,7 @@ function PortfolioContent({ portfolio }: { portfolio: Portfolio }) {
           onClick={() => toast.info('Tính năng sắp ra mắt')}
         >
           <Plus className="h-4 w-4" />
-          Thêm tài sản
+          Thêm mã theo dõi
         </Button>
       </motion.div>
     </div>

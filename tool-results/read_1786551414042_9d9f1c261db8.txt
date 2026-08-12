@@ -1,0 +1,980 @@
+     1→     1→'use client'
+     2→     2→
+     3→     3→import { useState, useEffect, useMemo, useCallback } from 'react'
+     4→     4→import { motion, AnimatePresence } from 'framer-motion'
+     5→     5→import {
+     6→     6→  ArrowLeft,
+     7→     7→  ArrowRight,
+     8→     8→  Check,
+     9→     9→  Search,
+    10→    10→  X,
+    11→    11→  BarChart3,
+    12→    12→  TrendingUp,
+    13→    13→  TrendingDown,
+    14→    14→  Zap,
+    15→    15→  DollarSign,
+    16→    16→  Activity,
+    17→    17→  Loader2,
+    18→    18→} from 'lucide-react'
+    19→    19→import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+    20→    20→import { Button } from '@/components/ui/button'
+    21→    21→import { Input } from '@/components/ui/input'
+    22→    22→import { Badge } from '@/components/ui/badge'
+    23→    23→import { Slider } from '@/components/ui/slider'
+    24→    24→import { Label } from '@/components/ui/label'
+    25→    25→import { Skeleton } from '@/components/ui/skeleton'
+    26→    26→import { useAppStore } from '@/store/app-store'
+    27→    27→import { cn } from '@/lib/utils'
+    28→    28→import type { Asset, AlertRiskLevel, AlertTemplate } from '@/lib/types'
+    29→    29→
+    30→    30→const ASSET_TYPES = [
+    31→    31→  { key: 'all', label: 'Tất cả' },
+    32→    32→  { key: 'stock', label: 'CK' },
+    33→    33→  { key: 'crypto', label: 'Crypto' },
+    34→    34→  { key: 'gold', label: 'Vàng' },
+    35→    35→] as const
+    36→    36→
+    37→    37→const CONDITION_TYPES = [
+    38→    38→  { key: 'technical', label: 'Chỉ báo kỹ thuật', icon: BarChart3 },
+    39→    39→  { key: 'price', label: 'Giá chạm', icon: DollarSign },
+    40→    40→  { key: 'volatility', label: 'Biến động %', icon: Activity },
+    41→    41→] as const
+    42→    42→
+    43→    43→const INDICATORS = [
+    44→    44→  { key: 'RSI', label: 'RSI', desc: 'Chỉ số sức mạnh tương đối' },
+    45→    45→  { key: 'MACD', label: 'MACD', desc: 'Chỉ số hội tụ phân kỳ' },
+    46→    46→  { key: 'MA', label: 'MA', desc: 'Đường trung bình động' },
+    47→    47→  { key: 'ATR', label: 'ATR', desc: 'Chỉ số biến động trung bình' },
+    48→    48→  { key: 'Volume', label: 'Volume', desc: 'Khối lượng giao dịch' },
+    49→    49→] as const
+    50→    50→
+    51→    51→const RISK_LEVELS = [
+    52→    52→  { key: 'high' as AlertRiskLevel, label: 'Cao', color: 'bg-destructive text-destructive-foreground border-destructive/30' },
+    53→    53→  { key: 'medium' as AlertRiskLevel, label: 'Vừa', color: 'bg-amber-500 text-white border-amber-500/30' },
+    54→    54→  { key: 'low' as AlertRiskLevel, label: 'Thấp', color: 'bg-emerald-500 text-white border-emerald-500/30' },
+    55→    55→] as const
+    56→    56→
+    57→    57→const RECENT_ASSETS = ['BTC', 'FPT', 'ETH', 'SJC', 'VNINDEX', 'SOL', 'VIC', 'HPG']
+    58→    58→
+    59→    59→const STEPS = ['Chọn tài sản', 'Chọn điều kiện', 'Cài đặt']
+    60→    60→
+    61→    61→function riskBorder(risk: AlertRiskLevel) {
+    62→    62→  switch (risk) {
+    63→    63→    case 'high': return 'border-destructive ring-destructive/20'
+    64→    64→    case 'medium': return 'border-amber-500 ring-amber-500/20'
+    65→    65→    case 'low': return 'border-emerald-500 ring-emerald-500/20'
+    66→    66→  }
+    67→    67→}
+    68→    68→
+    69→    69→function StepIndicator({ current }: { current: number }) {
+    70→    70→  return (
+    71→    71→    <div className="flex items-center gap-2">
+    72→    72→      {STEPS.map((step, i) => (
+    73→    73→        <div key={step} className="flex items-center gap-2">
+    74→    74→          <div
+    75→    75→            className={cn(
+    76→    76→              'flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition-colors',
+    77→    77→              i < current
+    78→    78→                ? 'bg-primary text-primary-foreground'
+    79→    79→                : i === current
+    80→    80→                  ? 'bg-primary text-primary-foreground ring-2 ring-primary/30'
+    81→    81→                  : 'bg-muted text-muted-foreground'
+    82→    82→            )}
+    83→    83→          >
+    84→    84→            {i < current ? <Check className="h-3.5 w-3.5" /> : i + 1}
+    85→    85→          </div>
+    86→    86→          <span
+    87→    87→            className={cn(
+    88→    88→              'text-xs font-medium hidden sm:inline',
+    89→    89→              i <= current ? 'text-foreground' : 'text-muted-foreground'
+    90→    90→            )}
+    91→    91→          >
+    92→    92→            {step}
+    93→    93→          </span>
+    94→    94→          {i < STEPS.length - 1 && (
+    95→    95→            <div
+    96→    96→              className={cn(
+    97→    97→                'h-px w-4 sm:w-8 transition-colors',
+    98→    98→                i < current ? 'bg-primary' : 'bg-border'
+    99→    99→              )}
+   100→   100→            />
+   101→   101→          )}
+   102→   102→        </div>
+   103→   103→      ))}
+   104→   104→    </div>
+   105→   105→  )
+   106→   106→}
+   107→   107→
+   108→   108→function formatPrice(price: number, symbol: string): string {
+   109→   109→  if (['BTC', 'ETH', 'BNB', 'SOL', 'XRP', 'ADA'].includes(symbol)) {
+   110→   110→    return `$${price.toLocaleString('en-US', { maximumFractionDigits: 2 })}`
+   111→   111→  }
+   112→   112→  if (['SJC', 'XAU'].includes(symbol)) {
+   113→   113→    return `${(price / 1_000_000).toFixed(1)} tr VNĐ`
+   114→   114→  }
+   115→   115→  return `${price.toLocaleString('vi-VN')} VNĐ`
+   116→   116→}
+   117→   117→
+   118→   118→// ---------- Step 1: Asset Selection ----------
+   119→   119→function StepAsset({
+   120→   120→  selected,
+   121→   121→  onSelect,
+   122→   122→}: {
+   123→   123→  selected: Asset | null
+   124→   124→  onSelect: (asset: Asset) => void
+   125→   125→}) {
+   126→   126→  const [search, setSearch] = useState('')
+   127→   127→  const [assetType, setAssetType] = useState<string>('all')
+   128→   128→  const [assets, setAssets] = useState<Asset[]>([])
+   129→   129→  const [loading, setLoading] = useState(false)
+   130→   130→
+   131→   131→  const fetchAssets = useCallback(async (query?: string, type?: string) => {
+   132→   132→    setLoading(true)
+   133→   133→    try {
+   134→   134→      const params = new URLSearchParams()
+   135→   135→      if (query) params.set('search', query)
+   136→   136→      if (type && type !== 'all') params.set('type', type)
+   137→   137→      const res = await fetch(`/api/assets?${params.toString()}`)
+   138→   138→      const json = await res.json()
+   139→   139→      setAssets(json.data ?? [])
+   140→   140→    } catch {
+   141→   141→      setAssets([])
+   142→   142→    } finally {
+   143→   143→      setLoading(false)
+   144→   144→    }
+   145→   145→  }, [])
+   146→   146→
+   147→   147→  useEffect(() => {
+   148→   148→    fetchAssets(search, assetType)
+   149→   149→  }, [search, assetType, fetchAssets])
+   150→   150→
+   151→   151→  const handleRecentClick = (symbol: string) => {
+   152→   152→    const asset = assets.find((a) => a.symbol === symbol)
+   153→   153→    if (asset) onSelect(asset)
+   154→   154→    else {
+   155→   155→      fetch(`/api/assets?search=${symbol}`)
+   156→   156→        .then((r) => r.json())
+   157→   157→        .then((json) => {
+   158→   158→          const found = (json.data ?? []).find((a: Asset) => a.symbol === symbol)
+   159→   159→          if (found) onSelect(found)
+   160→   160→        })
+   161→   161→        .catch(() => {})
+   162→   162→    }
+   163→   163→  }
+   164→   164→
+   165→   165→  return (
+   166→   166→    <motion.div
+   167→   167→      initial={{ opacity: 0, x: 20 }}
+   168→   168→      animate={{ opacity: 1, x: 0 }}
+   169→   169→      exit={{ opacity: 0, x: -20 }}
+   170→   170→      className="space-y-4"
+   171→   171→    >
+   172→   172→      {/* Search */}
+   173→   173→      <div className="relative">
+   174→   174→        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+   175→   175→        <Input
+   176→   176→          placeholder="Tìm mã tài sản..."
+   177→   177→          value={search}
+   178→   178→          onChange={(e) => setSearch(e.target.value)}
+   179→   179→          className="pl-9"
+   180→   180→        />
+   181→   181→      </div>
+   182→   182→
+   183→   183→      {/* Asset type chips */}
+   184→   184→      <div className="flex flex-wrap gap-1.5">
+   185→   185→        {ASSET_TYPES.map((t) => (
+   186→   186→          <button
+   187→   187→            key={t.key}
+   188→   188→            onClick={() => setAssetType(t.key)}
+   189→   189→            className={cn(
+   190→   190→              'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+   191→   191→              assetType === t.key
+   192→   192→                ? 'border-primary bg-primary/10 text-primary'
+   193→   193→                : 'border-border text-muted-foreground hover:bg-accent'
+   194→   194→            )}
+   195→   195→          >
+   196→   196→            {t.label}
+   197→   197→          </button>
+   198→   198→        ))}
+   199→   199→      </div>
+   200→   200→
+   201→   201→      {/* Selected asset */}
+   202→   202→      {selected && (
+   203→   203→        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
+   204→   204→          <div className="flex items-center justify-between">
+   205→   205→            <div>
+   206→   206→              <span className="font-semibold">{selected.symbol}</span>
+   207→   207→              <span className="ml-2 text-sm text-muted-foreground">{selected.name}</span>
+   208→   208→            </div>
+   209→   209→            <button onClick={() => onSelect(null as unknown as Asset)} className="text-muted-foreground hover:text-foreground">
+   210→   210→              <X className="h-4 w-4" />
+   211→   211→            </button>
+   212→   212→          </div>
+   213→   213→          <div className="mt-1 flex items-center gap-2">
+   214→   214→            <span className="text-lg font-bold">{formatPrice(selected.price, selected.symbol)}</span>
+   215→   215→            <span className={cn('text-sm font-medium', selected.change24h >= 0 ? 'text-gain' : 'text-loss')}>
+   216→   216→              {selected.change24h >= 0 ? '+' : ''}{selected.changePercent.toFixed(2)}%
+   217→   217→            </span>
+   218→   218→          </div>
+   219→   219→        </div>
+   220→   220→      )}
+   221→   221→
+   222→   222→      {/* Recent assets */}
+   223→   223→      <div>
+   224→   224→        <p className="text-xs font-medium text-muted-foreground mb-2">Gần đây</p>
+   225→   225→        <div className="flex flex-wrap gap-1.5">
+   226→   226→          {RECENT_ASSETS.map((sym) => (
+   227→   227→            <button
+   228→   228→              key={sym}
+   229→   229→              onClick={() => handleRecentClick(sym)}
+   230→   230→              className={cn(
+   231→   231→                'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+   232→   232→                selected?.symbol === sym
+   233→   233→                  ? 'border-primary bg-primary/10 text-primary'
+   234→   234→                  : 'border-border text-muted-foreground hover:bg-accent'
+   235→   235→              )}
+   236→   236→            >
+   237→   237→              {sym}
+   238→   238→            </button>
+   239→   239→          ))}
+   240→   240→        </div>
+   241→   241→      </div>
+   242→   242→
+   243→   243→      {/* Asset list */}
+   244→   244→      <div className="max-h-48 overflow-y-auto custom-scrollbar rounded-lg border divide-y">
+   245→   245→        {loading ? (
+   246→   246→          Array.from({ length: 4 }).map((_, i) => (
+   247→   247→            <div key={i} className="flex items-center gap-3 p-3">
+   248→   248→              <Skeleton className="h-8 w-8 rounded" />
+   249→   249→              <div className="flex-1 space-y-1">
+   250→   250→                <Skeleton className="h-4 w-20" />
+   251→   251→                <Skeleton className="h-3 w-32" />
+   252→   252→              </div>
+   253→   253→              <Skeleton className="h-4 w-16" />
+   254→   254→            </div>
+   255→   255→          ))
+   256→   256→        ) : assets.length === 0 ? (
+   257→   257→          <p className="p-4 text-center text-sm text-muted-foreground">Không tìm thấy</p>
+   258→   258→        ) : (
+   259→   259→          assets.map((asset) => (
+   260→   260→            <button
+   261→   261→              key={asset.id}
+   262→   262→              onClick={() => onSelect(asset)}
+   263→   263→              className={cn(
+   264→   264→                'flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent',
+   265→   265→                selected?.id === asset.id && 'bg-primary/5'
+   266→   266→              )}
+   267→   267→            >
+   268→   268→              <div className="h-8 w-8 rounded bg-muted flex items-center justify-center text-xs font-bold">
+   269→   269→                {asset.symbol.slice(0, 2)}
+   270→   270→              </div>
+   271→   271→              <div className="min-w-0 flex-1">
+   272→   272→                <p className="text-sm font-medium truncate">{asset.symbol}</p>
+   273→   273→                <p className="text-xs text-muted-foreground truncate">{asset.name}</p>
+   274→   274→              </div>
+   275→   275→              <div className="text-right flex-shrink-0">
+   276→   276→                <p className="text-sm font-medium">{formatPrice(asset.price, asset.symbol)}</p>
+   277→   277→                <p className={cn('text-xs font-medium', asset.change24h >= 0 ? 'text-gain' : 'text-loss')}>
+   278→   278→                  {asset.change24h >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%
+   279→   279→                </p>
+   280→   280→              </div>
+   281→   281→            </button>
+   282→   282→          ))
+   283→   283→        )}
+   284→   284→      </div>
+   285→   285→    </motion.div>
+   286→   286→  )
+   287→   287→}
+   288→   288→
+   289→   289→// ---------- Step 2: Condition Selection ----------
+   290→   290→function StepCondition({
+   291→   291→  conditionType,
+   292→   292→  setConditionType,
+   293→   293→  indicator,
+   294→   294→  setIndicator,
+   295→   295→  indicatorConfig,
+   296→   296→  setIndicatorConfig,
+   297→   297→  template,
+   298→   298→}: {
+   299→   299→  conditionType: string
+   300→   300→  setConditionType: (v: string) => void
+   301→   301→  indicator: string
+   302→   302→  setIndicator: (v: string) => void
+   303→   303→  indicatorConfig: Record<string, unknown>
+   304→   304→  setIndicatorConfig: (v: Record<string, unknown>) => void
+   305→   305→  template: AlertTemplate | null
+   306→   306→}) {
+   307→   307→  return (
+   308→   308→    <motion.div
+   309→   309→      initial={{ opacity: 0, x: 20 }}
+   310→   310→      animate={{ opacity: 1, x: 0 }}
+   311→   311→      exit={{ opacity: 0, x: -20 }}
+   312→   312→      className="space-y-4"
+   313→   313→    >
+   314→   314→      {/* Template info */}
+   315→   315→      {template && (
+   316→   316→        <div className="rounded-lg border bg-primary/5 p-3">
+   317→   317→          <p className="text-xs font-medium text-primary mb-1">Mẫu đã chọn</p>
+   318→   318→          <p className="font-semibold text-sm">{template.name}</p>
+   319→   319→          <p className="text-xs text-muted-foreground mt-0.5">{template.description}</p>
+   320→   320→          <p className="mt-1.5 text-xs font-mono text-muted-foreground bg-muted/50 rounded px-2 py-1">
+   321→   321→            {template.condition}
+   322→   322→          </p>
+   323→   323→        </div>
+   324→   324→      )}
+   325→   325→
+   326→   326→      {/* Condition type selector */}
+   327→   327→      <div>
+   328→   328→        <Label className="text-sm font-medium mb-2 block">Loại điều kiện</Label>
+   329→   329→        <div className="grid grid-cols-3 gap-2">
+   330→   330→          {CONDITION_TYPES.map((ct) => (
+   331→   331→            <button
+   332→   332→              key={ct.key}
+   333→   333→              onClick={() => setConditionType(ct.key)}
+   334→   334→              className={cn(
+   335→   335→                'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors',
+   336→   336→                conditionType === ct.key
+   337→   337→                  ? 'border-primary bg-primary/10 text-primary'
+   338→   338→                  : 'border-border text-muted-foreground hover:bg-accent'
+   339→   339→              )}
+   340→   340→            >
+   341→   341→              <ct.icon className="h-5 w-5" />
+   342→   342→              <span className="text-xs font-medium">{ct.label}</span>
+   343→   343→            </button>
+   344→   344→          ))}
+   345→   345→        </div>
+   346→   346→      </div>
+   347→   347→
+   348→   348→      {/* Technical indicator options */}
+   349→   349→      {conditionType === 'technical' && (
+   350→   350→        <div className="space-y-3">
+   351→   351→          <Label className="text-sm font-medium">Chỉ báo</Label>
+   352→   352→          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+   353→   353→            {INDICATORS.map((ind) => (
+   354→   354→              <button
+   355→   355→                key={ind.key}
+   356→   356→                onClick={() => setIndicator(ind.key)}
+   357→   357→                className={cn(
+   358→   358→                  'rounded-lg border p-3 text-left transition-colors',
+   359→   359→                  indicator === ind.key
+   360→   360→                    ? 'border-primary bg-primary/10'
+   361→   361→                    : 'border-border hover:bg-accent'
+   362→   362→                )}
+   363→   363→              >
+   364→   364→                <p className={cn('text-sm font-semibold', indicator === ind.key ? 'text-primary' : '')}>{ind.label}</p>
+   365→   365→                <p className="text-[11px] text-muted-foreground mt-0.5">{ind.desc}</p>
+   366→   366→              </button>
+   367→   367→            ))}
+   368→   368→          </div>
+   369→   369→
+   370→   370→          {/* Indicator-specific config */}
+   371→   371→          {indicator === 'RSI' && (
+   372→   372→            <div className="space-y-3 rounded-lg border p-4">
+   373→   373→              <Label className="text-sm font-medium">Ngưỡng RSI</Label>
+   374→   374→              <div className="flex items-center gap-4">
+   375→   375→                <span className="text-xs text-muted-foreground w-16">Quá mua</span>
+   376→   376→                <Slider
+   377→   377→                  value={[(indicatorConfig.rsiOverbought as number) ?? 70]}
+   378→   378→                  min={60}
+   379→   379→                  max={90}
+   380→   380→                  step={1}
+   381→   381→                  onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, rsiOverbought: v })}
+   382→   382→                  className="flex-1"
+   383→   383→                />
+   384→   384→                <Badge variant="outline" className="w-10 justify-center font-mono">
+   385→   385→                  {(indicatorConfig.rsiOverbought as number) ?? 70}
+   386→   386→                </Badge>
+   387→   387→              </div>
+   388→   388→              <div className="flex items-center gap-4">
+   389→   389→                <span className="text-xs text-muted-foreground w-16">Quá bán</span>
+   390→   390→                <Slider
+   391→   391→                  value={[(indicatorConfig.rsiOversold as number) ?? 30]}
+   392→   392→                  min={10}
+   393→   393→                  max={40}
+   394→   394→                  step={1}
+   395→   395→                  onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, rsiOversold: v })}
+   396→   396→                  className="flex-1"
+   397→   397→                />
+   398→   398→                <Badge variant="outline" className="w-10 justify-center font-mono">
+   399→   399→                  {(indicatorConfig.rsiOversold as number) ?? 30}
+   400→   400→                </Badge>
+   401→   401→              </div>
+   402→   402→            </div>
+   403→   403→          )}
+   404→   404→
+   405→   405→          {indicator === 'MACD' && (
+   406→   406→            <div className="space-y-3 rounded-lg border p-4">
+   407→   407→              <Label className="text-sm font-medium">Hướng cắt</Label>
+   408→   408→              <div className="grid grid-cols-2 gap-2">
+   409→   409→                {[
+   410→   410→                  { key: 'bullish', label: 'Cắt lên (Tín hiệu mua)', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
+   411→   411→                  { key: 'bearish', label: 'Cắt xuống (Tín hiệu bán)', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
+   412→   412→                ].map((opt) => (
+   413→   413→                  <button
+   414→   414→                    key={opt.key}
+   415→   415→                    onClick={() => setIndicatorConfig({ ...indicatorConfig, macdDirection: opt.key })}
+   416→   416→                    className={cn(
+   417→   417→                      'flex items-center gap-2 rounded-lg border p-3 transition-colors',
+   418→   418→                      indicatorConfig.macdDirection === opt.key
+   419→   419→                        ? opt.color
+   420→   420→                        : 'border-border hover:bg-accent'
+   421→   421→                    )}
+   422→   422→                  >
+   423→   423→                    <opt.icon className="h-4 w-4" />
+   424→   424→                    <span className="text-xs font-medium">{opt.label}</span>
+   425→   425→                  </button>
+   426→   426→                ))}
+   427→   427→              </div>
+   428→   428→            </div>
+   429→   429→          )}
+   430→   430→
+   431→   431→          {indicator === 'MA' && (
+   432→   432→            <div className="space-y-3 rounded-lg border p-4">
+   433→   433→              <Label className="text-sm font-medium">Kỳ MA</Label>
+   434→   434→              <div className="flex flex-wrap gap-2">
+   435→   435→                {[20, 50, 100].map((period) => (
+   436→   436→                  <button
+   437→   437→                    key={period}
+   438→   438→                    onClick={() => setIndicatorConfig({ ...indicatorConfig, maPeriod: period })}
+   439→   439→                    className={cn(
+   440→   440→                      'rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+   441→   441→                      indicatorConfig.maPeriod === period
+   442→   442→                        ? 'border-primary bg-primary/10 text-primary'
+   443→   443→                        : 'border-border text-muted-foreground hover:bg-accent'
+   444→   444→                    )}
+   445→   445→                  >
+   446→   446→                    MA{period}
+   447→   447→                  </button>
+   448→   448→                ))}
+   449→   449→              </div>
+   450→   450→              <Label className="text-sm font-medium mt-2">Hướng</Label>
+   451→   451→              <div className="grid grid-cols-2 gap-2">
+   452→   452→                {[
+   453→   453→                  { key: 'above', label: 'Giá trên MA', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
+   454→   454→                  { key: 'below', label: 'Giá dưới MA', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
+   455→   455→                ].map((opt) => (
+   456→   456→                  <button
+   457→   457→                    key={opt.key}
+   458→   458→                    onClick={() => setIndicatorConfig({ ...indicatorConfig, maDirection: opt.key })}
+   459→   459→                    className={cn(
+   460→   460→                      'flex items-center gap-2 rounded-lg border p-3 transition-colors',
+   461→   461→                      indicatorConfig.maDirection === opt.key
+   462→   462→                        ? opt.color
+   463→   463→                        : 'border-border hover:bg-accent'
+   464→   464→                    )}
+   465→   465→                  >
+   466→   466→                    <opt.icon className="h-4 w-4" />
+   467→   467→                    <span className="text-xs font-medium">{opt.label}</span>
+   468→   468→                  </button>
+   469→   469→                ))}
+   470→   470→              </div>
+   471→   471→            </div>
+   472→   472→          )}
+   473→   473→
+   474→   474→          {indicator === 'ATR' && (
+   475→   475→            <div className="space-y-3 rounded-lg border p-4">
+   476→   476→              <Label className="text-sm font-medium">Hệ số dãn rộng ATR</Label>
+   477→   477→              <Slider
+   478→   478→                value={[(indicatorConfig.atrMultiplier as number) ?? 2]}
+   479→   479→                min={1.5}
+   480→   480→                max={4}
+   481→   481→                step={0.1}
+   482→   482→                onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, atrMultiplier: v })}
+   483→   483→              />
+   484→   484→              <div className="text-center">
+   485→   485→                <Badge variant="outline" className="font-mono">{((indicatorConfig.atrMultiplier as number) ?? 2).toFixed(1)}x</Badge>
+   486→   486→              </div>
+   487→   487→            </div>
+   488→   488→          )}
+   489→   489→
+   490→   490→          {indicator === 'Volume' && (
+   491→   491→            <div className="space-y-3 rounded-lg border p-4">
+   492→   492→              <Label className="text-sm font-medium">Tăng khối lượng (%)</Label>
+   493→   493→              <Slider
+   494→   494→                value={[(indicatorConfig.volumeIncrease as number) ?? 200]}
+   495→   495→                min={50}
+   496→   496→                max={500}
+   497→   497→                step={10}
+   498→   498→                onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, volumeIncrease: v })}
+   499→   499→              />
+   500→   500→              <div className="text-center">
+   501→   501→                <Badge variant="outline" className="font-mono">{(indicatorConfig.volumeIncrease as number) ?? 200}%</Badge>
+   502→   502→              </div>
+   503→   503→            </div>
+   504→   504→          )}
+   505→   505→        </div>
+   506→   506→      )}
+   507→   507→
+   508→   508→      {/* Price condition */}
+   509→   509→      {conditionType === 'price' && (
+   510→   510→        <div className="space-y-3 rounded-lg border p-4">
+   511→   511→          <Label className="text-sm font-medium">Mức giá mục tiêu</Label>
+   512→   512→          <Input
+   513→   513→            type="number"
+   514→   514→            placeholder="Nhập mức giá..."
+   515→   515→            value={(indicatorConfig.targetPrice as number) ?? ''}
+   516→   516→            onChange={(e) => setIndicatorConfig({ ...indicatorConfig, targetPrice: parseFloat(e.target.value) || 0 })}
+   517→   517→          />
+   518→   518→          <Label className="text-sm font-medium mt-2">Hướng</Label>
+   519→   519→          <div className="grid grid-cols-2 gap-2">
+   520→   520→            {[
+   521→   521→              { key: 'above', label: 'Giá vượt lên trên', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
+   522→   522→              { key: 'below', label: 'Giá rơi xuống dưới', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
+   523→   523→            ].map((opt) => (
+   524→   524→              <button
+   525→   525→                key={opt.key}
+   526→   526→                onClick={() => setIndicatorConfig({ ...indicatorConfig, priceDirection: opt.key })}
+   527→   527→                className={cn(
+   528→   528→                  'flex items-center gap-2 rounded-lg border p-3 transition-colors',
+   529→   529→                  indicatorConfig.priceDirection === opt.key
+   530→   530→                    ? opt.color
+   531→   531→                    : 'border-border hover:bg-accent'
+   532→   532→                )}
+   533→   533→              >
+   534→   534→                <opt.icon className="h-4 w-4" />
+   535→   535→                <span className="text-xs font-medium">{opt.label}</span>
+   536→   536→              </button>
+   537→   537→            ))}
+   538→   538→          </div>
+   539→   539→        </div>
+   540→   540→      )}
+   541→   541→
+   542→   542→      {/* Volatility condition */}
+   543→   543→      {conditionType === 'volatility' && (
+   544→   544→        <div className="space-y-3 rounded-lg border p-4">
+   545→   545→          <Label className="text-sm font-medium">Biến động (%)</Label>
+   546→   546→          <Slider
+   547→   547→            value={[(indicatorConfig.volatilityPercent as number) ?? 5]}
+   548→   548→            min={1}
+   549→   549→            max={20}
+   550→   550→            step={0.5}
+   551→   551→            onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, volatilityPercent: v })}
+   552→   552→          />
+   553→   553→          <div className="text-center">
+   554→   554→            <Badge variant="outline" className="font-mono">{((indicatorConfig.volatilityPercent as number) ?? 5).toFixed(1)}%</Badge>
+   555→   555→          </div>
+   556→   556→          <Label className="text-sm font-medium mt-2">Khung thời gian</Label>
+   557→   557→          <div className="flex flex-wrap gap-2">
+   558→   558→            {[
+   559→   559→              { key: '1h', label: '1 giờ' },
+   560→   560→              { key: '4h', label: '4 giờ' },
+   561→   561→              { key: '1d', label: '1 ngày' },
+   562→   562→              { key: '1w', label: '1 tuần' },
+   563→   563→            ].map((tf) => (
+   564→   564→              <button
+   565→   565→                key={tf.key}
+   566→   566→                onClick={() => setIndicatorConfig({ ...indicatorConfig, timeframe: tf.key })}
+   567→   567→                className={cn(
+   568→   568→                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+   569→   569→                  indicatorConfig.timeframe === tf.key
+   570→   570→                    ? 'border-primary bg-primary/10 text-primary'
+   571→   571→                    : 'border-border text-muted-foreground hover:bg-accent'
+   572→   572→                )}
+   573→   573→              >
+   574→   574→                {tf.label}
+   575→   575→              </button>
+   576→   576→            ))}
+   577→   577→          </div>
+   578→   578→        </div>
+   579→   579→      )}
+   580→   580→    </motion.div>
+   581→   581→  )
+   582→   582→}
+   583→   583→
+   584→   584→// ---------- Step 3: Settings ----------
+   585→   585→function StepSettings({
+   586→   586→  riskLevel,
+   587→   587→  setRiskLevel,
+   588→   588→  actionType,
+   589→   589→  setActionType,
+   590→   590→  summary,
+   591→   591→  submitting,
+   592→   592→  onSubmit,
+   593→   593→}: {
+   594→   594→  riskLevel: AlertRiskLevel
+   595→   595→  setRiskLevel: (v: AlertRiskLevel) => void
+   596→   596→  actionType: string
+   597→   597→  setActionType: (v: string) => void
+   598→   598→  summary: { label: string; value: string }[]
+   599→   599→  submitting: boolean
+   600→   600→  onSubmit: () => void
+   601→   601→}) {
+   602→   602→  return (
+   603→   603→    <motion.div
+   604→   604→      initial={{ opacity: 0, x: 20 }}
+   605→   605→      animate={{ opacity: 1, x: 0 }}
+   606→   606→      exit={{ opacity: 0, x: -20 }}
+   607→   607→      className="space-y-4"
+   608→   608→    >
+   609→   609→      {/* Risk level */}
+   610→   610→      <div>
+   611→   611→        <Label className="text-sm font-medium mb-2 block">Mức rủi ro</Label>
+   612→   612→        <div className="grid grid-cols-3 gap-2">
+   613→   613→          {RISK_LEVELS.map((r) => (
+   614→   614→            <button
+   615→   615→              key={r.key}
+   616→   616→              onClick={() => setRiskLevel(r.key)}
+   617→   617→              className={cn(
+   618→   618→                'rounded-lg border p-3 text-center transition-colors',
+   619→   619→                riskLevel === r.key
+   620→   620→                  ? cn('ring-2', r.color)
+   621→   621→                  : 'border-border hover:bg-accent'
+   622→   622→              )}
+   623→   623→            >
+   624→   624→              <span className="text-sm font-semibold">{r.label}</span>
+   625→   625→            </button>
+   626→   626→          ))}
+   627→   627→        </div>
+   628→   628→      </div>
+   629→   629→
+   630→   630→      {/* Action type */}
+   631→   631→      <div>
+   632→   632→        <Label className="text-sm font-medium mb-2 block">Hành động</Label>
+   633→   633→        <div className="grid grid-cols-2 gap-2">
+   634→   634→          {[
+   635→   635→            { key: 'notify', label: 'Chỉ thông báo', icon: Zap, desc: 'Nhận thông báo khi kích hoạt' },
+   636→   636→            { key: 'stoploss', label: 'Đề xuất cắt lỗ', icon: TrendingDown, desc: 'Gợi ý mức cắt lỗ phù hợp' },
+   637→   637→          ].map((a) => (
+   638→   638→            <button
+   639→   639→              key={a.key}
+   640→   640→              onClick={() => setActionType(a.key)}
+   641→   641→              className={cn(
+   642→   642→                'flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors',
+   643→   643→                actionType === a.key
+   644→   644→                  ? 'border-primary bg-primary/10 text-primary'
+   645→   645→                  : 'border-border text-muted-foreground hover:bg-accent'
+   646→   646→              )}
+   647→   647→            >
+   648→   648→              <a.icon className="h-5 w-5" />
+   649→   649→              <span className="text-xs font-semibold">{a.label}</span>
+   650→   650→              <span className="text-[10px] text-muted-foreground">{a.desc}</span>
+   651→   651→            </button>
+   652→   652→          ))}
+   653→   653→        </div>
+   654→   654→      </div>
+   655→   655→
+   656→   656→      {/* Summary */}
+   657→   657→      <div>
+   658→   658→        <Label className="text-sm font-medium mb-2 block">Tóm tắt</Label>
+   659→   659→        <div className="rounded-lg border divide-y">
+   660→   660→          {summary.map((s, i) => (
+   661→   661→            <div key={i} className="flex items-center justify-between px-4 py-2.5">
+   662→   662→              <span className="text-sm text-muted-foreground">{s.label}</span>
+   663→   663→              <span className="text-sm font-medium text-right max-w-[60%] truncate">{s.value}</span>
+   664→   664→            </div>
+   665→   665→          ))}
+   666→   666→        </div>
+   667→   667→      </div>
+   668→   668→
+   669→   669→      {/* Submit */}
+   670→   670→      <Button
+   671→   671→        className="w-full"
+   672→   672→        size="lg"
+   673→   673→        disabled={submitting}
+   674→   674→        onClick={onSubmit}
+   675→   675→      >
+   676→   676→        {submitting ? (
+   677→   677→          <>
+   678→   678→            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   679→   679→            Đang tạo...
+   680→   680→          </>
+   681→   681→        ) : (
+   682→   682→          'Tạo cảnh báo'
+   683→   683→        )}
+   684→   684→      </Button>
+   685→   685→    </motion.div>
+   686→   686→  )
+   687→   687→}
+   688→   688→
+   689→   689→// ---------- Main Builder Dialog ----------
+   690→   690→export function AlertBuilderSheet() {
+   691→   691→  const { activeOverlay, overlayData, closeOverlay, openOverlay } = useAppStore()
+   692→   692→  const open = activeOverlay === 'alert-builder'
+   693→   693→
+   694→   694→  const [step, setStep] = useState(0)
+   695→   695→  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
+   696→   696→  const [conditionType, setConditionType] = useState('technical')
+   697→   697→  const [indicator, setIndicator] = useState('RSI')
+   698→   698→  const [indicatorConfig, setIndicatorConfig] = useState<Record<string, unknown>>({
+   699→   699→    rsiOverbought: 70,
+   700→   700→    rsiOversold: 30,
+   701→   701→    macdDirection: 'bearish',
+   702→   702→    maPeriod: 20,
+   703→   703→    maDirection: 'below',
+   704→   704→    atrMultiplier: 2,
+   705→   705→    volumeIncrease: 200,
+   706→   706→    targetPrice: 0,
+   707→   707→    priceDirection: 'above',
+   708→   708→    volatilityPercent: 5,
+   709→   709→    timeframe: '1d',
+   710→   710→  })
+   711→   711→  const [riskLevel, setRiskLevel] = useState<AlertRiskLevel>('medium')
+   712→   712→  const [actionType, setActionType] = useState('notify')
+   713→   713→  const [submitting, setSubmitting] = useState(false)
+   714→   714→  const [template, setTemplate] = useState<AlertTemplate | null>(null)
+   715→   715→
+   716→   716→  // Pre-fill from template
+   717→   717→  useEffect(() => {
+   718→   718→    if (open) {
+   719→   719→      const tpl = overlayData?.template as AlertTemplate | undefined
+   720→   720→      if (tpl) {
+   721→   721→        setTemplate(tpl)
+   722→   722→        if (tpl.indicatorType === 'RSI') setIndicator('RSI')
+   723→   723→        else if (tpl.indicatorType === 'MACD') setIndicator('MACD')
+   724→   724→        else if (tpl.indicatorType === 'MA') setIndicator('MA')
+   725→   725→        else if (tpl.indicatorType === 'ATR') setIndicator('ATR')
+   726→   726→        else if (tpl.indicatorType === 'volume') setIndicator('Volume')
+   727→   727→        else if (tpl.indicatorType === 'price') setConditionType('price')
+   728→   728→        else if (tpl.indicatorType === 'event') setConditionType('volatility')
+   729→   729→        setRiskLevel(tpl.riskLevel)
+   730→   730→      }
+   731→   731→      // Pre-fill asset symbol
+   732→   732→      const sym = overlayData?.assetSymbol as string | undefined
+   733→   733→      if (sym) {
+   734→   734→        fetch(`/api/assets?search=${sym}`)
+   735→   735→          .then((r) => r.json())
+   736→   736→          .then((json) => {
+   737→   737→            const found = (json.data ?? []).find((a: Asset) => a.symbol === sym)
+   738→   738→            if (found) setSelectedAsset(found)
+   739→   739→          })
+   740→   740→          .catch(() => {})
+   741→   741→      }
+   742→   742→    }
+   743→   743→  }, [open, overlayData])
+   744→   744→
+   745→   745→  // Reset on close
+   746→   746→  useEffect(() => {
+   747→   747→    if (!open) {
+   748→   748→      setStep(0)
+   749→   749→      setSelectedAsset(null)
+   750→   750→      setConditionType('technical')
+   751→   751→      setIndicator('RSI')
+   752→   752→      setIndicatorConfig({
+   753→   753→        rsiOverbought: 70,
+   754→   754→        rsiOversold: 30,
+   755→   755→        macdDirection: 'bearish',
+   756→   756→        maPeriod: 20,
+   757→   757→        maDirection: 'below',
+   758→   758→        atrMultiplier: 2,
+   759→   759→        volumeIncrease: 200,
+   760→   760→        targetPrice: 0,
+   761→   761→        priceDirection: 'above',
+   762→   762→        volatilityPercent: 5,
+   763→   763→        timeframe: '1d',
+   764→   764→      })
+   765→   765→      setRiskLevel('medium')
+   766→   766→      setActionType('notify')
+   767→   767→      setSubmitting(false)
+   768→   768→      setTemplate(null)
+   769→   769→    }
+   770→   770→  }, [open])
+   771→   771→
+   772→   772→  const canNext = useMemo(() => {
+   773→   773→ if (step === 0) return !!selectedAsset
+   774→   774→    return step === 1
+   775→   775→      ? conditionType === 'price'
+   776→   776→        ? !!indicatorConfig.targetPrice && (indicatorConfig.targetPrice as number) > 0
+   777→   777→        : !!indicator
+   778→   778→      : true
+   779→   779→  }, [step, selectedAsset, conditionType, indicator, indicatorConfig])
+   780→   780→
+   781→   781→  const buildConditionDescription = useCallback((): { condition: string; desc: string; indType: string; value?: number; threshold?: number } => {
+   782→   782→    if (!selectedAsset) return { condition: '', desc: '', indType: '' }
+   783→   783→    const sym = selectedAsset.symbol
+   784→   784→
+   785→   785→    if (conditionType === 'technical') {
+   786→   786→      switch (indicator) {
+   787→   787→        case 'RSI':
+   788→   788→          return {
+   789→   789→            condition: `RSI > ${(indicatorConfig.rsiOverbought as number) ?? 70}`,
+   790→   790→            desc: `Chỉ số RSI của ${sym} vượt mức ${(indicatorConfig.rsiOverbought as number) ?? 70}, cảnh báo vùng quá mua`,
+   791→   791→            indType: 'RSI',
+   792→   792→            value: 68,
+   793→   793→            threshold: (indicatorConfig.rsiOverbought as number) ?? 70,
+   794→   794→          }
+   795→   795→        case 'MACD': {
+   796→   796→          const dir = indicatorConfig.macdDirection as string
+   797→   797→          return {
+   798→   798→            condition: dir === 'bullish' ? 'MACD cắt lên tín hiệu' : 'MACD cắt xuống tín hiệu',
+   799→   799→            desc: `Đường MACD của ${sym} ${dir === 'bullish' ? 'cắt lên' : 'cắt xuống'} đường tín hiệu`,
+   800→   800→            indType: 'MACD',
+   801→   801→          }
+   802→   802→        }
+   803→   803→        case 'MA': {
+   804→   804→          const period = indicatorConfig.maPeriod as number
+   805→   805→          const dir = indicatorConfig.maDirection as string
+   806→   806→          return {
+   807→   807→            condition: `Giá ${dir === 'above' ? '>' : '<'} MA${period}`,
+   808→   808→            desc: `Giá ${sym} ${dir === 'above' ? 'trên' : 'dưới'} đường MA${period}`,
+   809→   809→            indType: 'MA',
+   810→   810→          }
+   811→   811→        }
+   812→   812→        case 'ATR': {
+   813→   813→          const mult = indicatorConfig.atrMultiplier as number
+   814→   814→          return {
+   815→   815→            condition: `ATR > ${mult} * AvgATR`,
+   816→   816→            desc: `ATR ${sym} dãn rộng vượt ${mult}x trung bình, dự báo biến động mạnh`,
+   817→   817→            indType: 'ATR',
+   818→   818→          }
+   819→   819→        }
+   820→   820→        case 'Volume': {
+   821→   821→          const pct = indicatorConfig.volumeIncrease as number
+   822→   822→          return {
+   823→   823→            condition: `Volume > ${pct}% avg`,
+   824→   824→            desc: `Khối lượng ${sym} tăng vượt ${pct}% so với trung bình`,
+   825→   825→            indType: 'volume',
+   826→   826→          }
+   827→   827→        }
+   828→   828→        default:
+   829→   829→          return { condition: '', desc: '', indType: indicator }
+   830→   830→      }
+   831→   831→    }
+   832→   832→
+   833→   833→    if (conditionType === 'price') {
+   834→   834→      const price = indicatorConfig.targetPrice as number
+   835→   835→      const dir = indicatorConfig.priceDirection as string
+   836→   836→      return {
+   837→   837→        condition: `Giá ${dir === 'above' ? '>' : '<'} ${price.toLocaleString()}`,
+   838→   838→        desc: `Giá ${sym} ${dir === 'above' ? 'vượt lên trên' : 'rơi xuống dưới'} ${price.toLocaleString()}`,
+   839→   839→        indType: 'price',
+   840→   840→        value: selectedAsset.price,
+   841→   841→        threshold: price,
+   842→   842→      }
+   843→   843→    }
+   844→   844→
+   845→   845→    // volatility
+   846→   846→    const pct = indicatorConfig.volatilityPercent as number
+   847→   847→    const tf = indicatorConfig.timeframe as string
+   848→   848→    const tfLabel: Record<string, string> = { '1h': '1 giờ', '4h': '4 giờ', '1d': '1 ngày', '1w': '1 tuần' }
+   849→   849→    return {
+   850→   850→      condition: `Biến động > ${pct}% trong ${tfLabel[tf] ?? tf}`,
+   851→   851→      desc: `${sym} biến động hơn ${pct}% trong ${tfLabel[tf] ?? tf}`,
+   852→   852→      indType: 'ATR',
+   853→   853→    }
+   854→   854→  }, [selectedAsset, conditionType, indicator, indicatorConfig])
+   855→   855→
+   856→   856→  const summary = useMemo(() => {
+   857→   857→    if (!selectedAsset) return []
+   858→   858→    const cond = buildConditionDescription()
+   859→   859→    return [
+   860→   860→      { label: 'Tài sản', value: `${selectedAsset.symbol} - ${selectedAsset.name}` },
+   861→   861→      { label: 'Điều kiện', value: cond.condition },
+   862→   862→      { label: 'Mô tả', value: cond.desc },
+   863→   863→      { label: 'Rủi ro', value: riskLevel === 'high' ? 'Cao' : riskLevel === 'medium' ? 'Vừa' : 'Thấp' },
+   864→   864→      { label: 'Hành động', value: actionType === 'notify' ? 'Chỉ thông báo' : 'Đề xuất cắt lỗ' },
+   865→   865→    ]
+   866→   866→  }, [selectedAsset, riskLevel, actionType, buildConditionDescription])
+   867→   867→
+   868→   868→  const handleSubmit = async () => {
+   869→   869→    if (!selectedAsset) return
+   870→   870→    setSubmitting(true)
+   871→   871→    try {
+   872→   872→      const cond = buildConditionDescription()
+   873→   873→      const body = {
+   874→   874→        assetSymbol: selectedAsset.symbol,
+   875→   875→        assetName: selectedAsset.name,
+   876→   876→        type: 'custom',
+   877→   877→        condition: cond.condition,
+   878→   878→        conditionDescription: cond.desc,
+   879→   879→        riskLevel,
+   880→   880→        indicatorType: cond.indType,
+   881→   881→        value: cond.value,
+   882→   882→        threshold: cond.threshold,
+   883→   883→      }
+   884→   884→      const res = await fetch('/api/alerts', {
+   885→   885→        method: 'POST',
+   886→   886→        headers: { 'Content-Type': 'application/json' },
+   887→   887→        body: JSON.stringify(body),
+   888→   888→      })
+   889→   889→      if (res.ok) {
+   890→   890→        const json = await res.json()
+   891→   891→        closeOverlay()
+   892→   892→        setTimeout(() => {
+   893→   893→          openOverlay('alert-detail', { id: json.data.id })
+   894→   894→        }, 300)
+   895→   895→      }
+   896→   896→    } catch {
+   897→   897→      // silently fail
+   898→   898→    } finally {
+   899→   899→      setSubmitting(false)
+   900→   900→    }
+   901→   901→  }
+   902→   902→
+   903→   903→  return (
+   904→   904→    <Dialog open={open} onOpenChange={(v) => !v && closeOverlay()}>
+   905→   905→      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col p-0">
+   906→   906→        <DialogHeader className="p-6 pb-0">
+   907→   907→          <div className="flex items-center justify-between">
+   908→   908→            <div>
+   909→   909→              <DialogTitle>Tạo cảnh báo mới</DialogTitle>
+   910→   910→              <DialogDescription className="mt-1">
+   911→   911→                {STEPS[step]}
+   912→   912→              </DialogDescription>
+   913→   913→            </div>
+   914→   914→          </div>
+   915→   915→          <div className="mt-3">
+   916→   916→            <StepIndicator current={step} />
+   917→   917→          </div>
+   918→   918→        </DialogHeader>
+   919→   919→
+   920→   920→        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 py-4">
+   921→   921→          <AnimatePresence mode="wait">
+   922→   922→            {step === 0 && (
+   923→   923→              <StepAsset
+   924→   924→                key="step-0"
+   925→   925→                selected={selectedAsset}
+   926→   926→                onSelect={setSelectedAsset}
+   927→   927→              />
+   928→   928→            )}
+   929→   929→            {step === 1 && (
+   930→   930→              <StepCondition
+   931→   931→                key="step-1"
+   932→   932→                conditionType={conditionType}
+   933→   933→                setConditionType={setConditionType}
+   934→   934→                indicator={indicator}
+   935→   935→                setIndicator={setIndicator}
+   936→   936→                indicatorConfig={indicatorConfig}
+   937→   937→                setIndicatorConfig={setIndicatorConfig}
+   938→   938→                template={template}
+   939→   939→              />
+   940→   940→            )}
+   941→   941→            {step === 2 && (
+   942→   942→              <StepSettings
+   943→   943→                key="step-2"
+   944→   944→                riskLevel={riskLevel}
+   945→   945→                setRiskLevel={setRiskLevel}
+   946→   946→                actionType={actionType}
+   947→   947→                setActionType={setActionType}
+   948→   948→                summary={summary}
+   949→   949→                submitting={submitting}
+   950→   950→                onSubmit={handleSubmit}
+   951→   951→              />
+   952→   952→            )}
+   953→   953→          </AnimatePresence>
+   954→   954→        </div>
+   955→   955→
+   956→   956→        {/* Navigation */}
+   957→   957→        <div className="flex items-center justify-between border-t px-6 py-4">
+   958→   958→          <Button
+   959→   959→            variant="outline"
+   960→   960→            onClick={() => setStep((s) => Math.max(0, s - 1))}
+   961→   961→            disabled={step === 0}
+   962→   962→          >
+   963→   963→            <ArrowLeft className="mr-1.5 h-4 w-4" />
+   964→   964→            Quay lại
+   965→   965→          </Button>
+   966→   966→          {step < 2 && (
+   967→   967→            <Button
+   968→   968→              onClick={() => setStep((s) => Math.min(2, s + 1))}
+   969→   969→              disabled={!canNext}
+   970→   970→            >
+   971→   971→              Tiếp theo
+   972→   972→              <ArrowRight className="ml-1.5 h-4 w-4" />
+   973→   973→            </Button>
+   974→   974→          )}
+   975→   975→        </div>
+   976→   976→      </DialogContent>
+   977→   977→    </Dialog>
+   978→   978→  )
+   979→   979→}
+   980→   980→

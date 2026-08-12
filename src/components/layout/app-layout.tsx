@@ -35,32 +35,36 @@ export function AppLayout() {
       <AppHeader />
 
       <div className="flex flex-1">
-        {/* Sidebar (desktop) */}
+        {/* Sidebar (desktop xl+) */}
         <SidebarNav />
 
         {/* Main content area */}
         <main
           className={cn(
             'flex-1 transition-all duration-300 ease-in-out',
-            // Account for sidebar on desktop
-            'lg:ml-64',
-            sidebarCollapsed && 'lg:ml-16'
+            // Account for sidebar on xl+ (1280px+)
+            'xl:ml-64',
+            sidebarCollapsed && 'xl:ml-[68px]'
           )}
         >
           <div
             className={cn(
               'custom-scrollbar overflow-y-auto',
-              // Account for bottom nav on mobile and header
-              'pb-20 pt-6 px-4 md:px-6',
-              'min-h-[calc(100vh-3.5rem)]'
+              // Bottom nav clearance: only when sidebar is NOT visible (below xl)
+              'pb-[80px] xl:pb-6',
+              'pt-4 sm:pt-6 px-3 sm:px-4 md:px-6',
+              'min-h-[calc(100vh-3rem)] sm:min-h-[calc(100vh-3.5rem)]'
             )}
           >
-            {renderView(currentView)}
+            {/* Max-width container for content readability on large screens */}
+            <div className="mx-auto w-full max-w-screen-2xl">
+              {renderView(currentView)}
+            </div>
           </div>
         </main>
       </div>
 
-      {/* Bottom navigation (mobile) */}
+      {/* Bottom navigation (mobile/tablet: md and below) */}
       <BottomNav />
 
       {/* Global overlays */}
@@ -105,20 +109,4 @@ function renderView(view: string) {
     default:
       return <HomeDashboard />
   }
-}
-
-function SectionPlaceholder({ title }: { title: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-20">
-      <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-        <span className="text-lg font-bold text-muted-foreground">
-          {title.charAt(0)}
-        </span>
-      </div>
-      <h2 className="mt-4 text-xl font-semibold">{title}</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Tính năng đang được phát triển...
-      </p>
-    </div>
-  )
 }

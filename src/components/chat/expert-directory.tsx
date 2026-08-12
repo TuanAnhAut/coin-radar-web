@@ -68,15 +68,19 @@ function getCategoryForExpert(specialty: string): CategoryKey {
 function ExpertCardSkeleton() {
   return (
     <Card className="border-0 shadow-sm">
-      <CardContent className="p-4 flex items-start gap-4">
-        <Skeleton className="h-14 w-14 rounded-full shrink-0" />
+      <CardContent className="p-4 flex items-start gap-3 sm:gap-4">
+        <Skeleton className="h-12 w-12 sm:h-14 sm:w-14 rounded-full shrink-0" />
         <div className="flex-1 space-y-2">
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-3 w-24" />
-          <Skeleton className="h-3 w-20" />
+          <div className="flex items-center gap-1">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-3 w-3 rounded-full" />
+            ))}
+          </div>
           <div className="flex gap-2 pt-1">
-            <Skeleton className="h-8 w-24" />
-            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-9 w-24 rounded-md" />
+            <Skeleton className="h-9 w-24 rounded-md" />
           </div>
         </div>
       </CardContent>
@@ -123,34 +127,34 @@ export function ExpertDirectory() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-xl font-bold">Chuyên gia phân tích</h2>
+          <h2 className="text-lg sm:text-xl font-bold">Chuyên gia phân tích</h2>
           <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 text-xs">
             {onlineCount} trực tuyến
           </Badge>
         </div>
       </div>
 
-      {/* Search */}
+      {/* Search - full width */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           placeholder="Tìm kiếm chuyên gia..."
-          className="pl-9"
+          className="pl-9 h-11"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {/* Category filter tabs - horizontal scrollable on mobile */}
+      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mx-1 px-1">
         {categoryTabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveCategory(tab.key)}
             className={cn(
-              'px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors',
+              'px-3 sm:px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors min-h-[40px] flex items-center',
               activeCategory === tab.key
                 ? 'bg-primary text-primary-foreground'
                 : 'bg-muted text-muted-foreground hover:bg-muted/80'
@@ -161,7 +165,7 @@ export function ExpertDirectory() {
         ))}
       </div>
 
-      {/* Expert list */}
+      {/* Expert list - single column on mobile for readability */}
       <div className="space-y-3">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => <ExpertCardSkeleton key={i} />)
@@ -207,12 +211,12 @@ function ExpertCard({
       transition={{ delay: index * 0.05, duration: 0.3 }}
     >
       <Card className="border-0 shadow-sm hover:shadow-md transition-shadow duration-200">
-        <CardContent className="p-4 flex items-start gap-4">
-          {/* Avatar */}
+        <CardContent className="p-4 flex items-start gap-3 sm:gap-4">
+          {/* Avatar - smaller on mobile, larger on desktop */}
           <div className="relative shrink-0">
             <div
               className={cn(
-                'h-14 w-14 rounded-full flex items-center justify-center text-white font-bold text-lg',
+                'h-12 w-12 sm:h-14 sm:w-14 rounded-full flex items-center justify-center text-white font-bold text-base sm:text-lg',
                 getAvatarColor(expert.id)
               )}
             >
@@ -220,7 +224,7 @@ function ExpertCard({
             </div>
             <span
               className={cn(
-                'absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white dark:border-card',
+                'absolute bottom-0 right-0 h-3 w-3 sm:h-3.5 sm:w-3.5 rounded-full border-2 border-white dark:border-card',
                 statusConfig.dot
               )}
             />
@@ -234,8 +238,8 @@ function ExpertCard({
 
             <p className="text-xs text-muted-foreground mt-0.5">{expert.specialty}</p>
 
-            {/* Rating */}
-            <div className="flex items-center gap-1 mt-1">
+            {/* Star rating - visible and readable on mobile */}
+            <div className="flex items-center gap-0.5 mt-1.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star
                   key={i}
@@ -247,7 +251,7 @@ function ExpertCard({
                   )}
                 />
               ))}
-              <span className="text-xs text-muted-foreground ml-1">
+              <span className="text-xs text-muted-foreground ml-1.5">
                 {expert.rating} ({expert.reviewCount})
               </span>
             </div>
@@ -255,26 +259,28 @@ function ExpertCard({
             {/* Status badge */}
             <Badge
               variant="secondary"
-              className={cn('mt-1.5 text-[10px] font-medium', statusConfig.badge)}
+              className={cn('mt-2 text-[10px] font-medium', statusConfig.badge)}
             >
               {statusConfig.label}
             </Badge>
           </div>
 
-          {/* Actions */}
+          {/* Actions - side by side on mobile */}
           <div className="flex flex-col gap-2 shrink-0">
-            <Button size="sm" className="h-8 text-xs gap-1" onClick={onSendMessage}>
-              <MessageCircle className="h-3 w-3" />
-              Nhắn tin
+            <Button size="sm" className="h-9 text-xs gap-1.5 min-w-[80px]" onClick={onSendMessage}>
+              <MessageCircle className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Nhắn tin</span>
+              <span className="sm:hidden">Chat</span>
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="h-8 text-xs gap-1"
+              className="h-9 text-xs gap-1.5 min-w-[80px]"
               onClick={onViewProfile}
             >
-              <Eye className="h-3 w-3" />
-              Xem profile
+              <Eye className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Xem profile</span>
+              <span className="sm:hidden">Xem</span>
             </Button>
           </div>
         </CardContent>

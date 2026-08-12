@@ -17,6 +17,13 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription,
+} from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -24,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/app-store'
+import { useIsMobile } from '@/lib/hooks'
 import { formatCurrency, formatDateTime } from '@/lib/format'
 import type { ScanResponse, ScanResult } from '@/lib/types'
 
@@ -68,11 +76,11 @@ function ResultCard({ result, index }: { result: ScanResult; index: number }) {
       transition={{ delay: index * 0.06, duration: 0.3 }}
       className={cn('rounded-lg border p-4', config.border, config.bg)}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+        <div className="flex-1 min-w-0">
           <div className="mb-1 flex items-center gap-2">
             <button
-              className="font-semibold hover:underline"
+              className="min-h-[44px] flex items-center font-semibold hover:underline"
               onClick={() => openOverlay('asset-detail', { symbol: result.assetSymbol })}
             >
               {result.assetSymbol}
@@ -80,6 +88,7 @@ function ResultCard({ result, index }: { result: ScanResult; index: number }) {
             <span className="text-muted-foreground text-sm">{result.assetName}</span>
           </div>
 
+          {/* Anomaly badges - wrap properly */}
           <div className="mb-2 flex flex-wrap items-center gap-1.5">
             <Badge className={cn('text-xs', config.badge)} variant="secondary">
               {result.anomalyLabel}
@@ -108,13 +117,15 @@ function ResultCard({ result, index }: { result: ScanResult; index: number }) {
           </div>
         </div>
 
+        {/* "Tạo cảnh báo" button - full width on mobile within cards */}
         <Button
           size="sm"
           variant="outline"
-          className="shrink-0"
+          className="min-h-[44px] w-full shrink-0 sm:w-auto"
           onClick={() => openOverlay('alert-builder', { assetSymbol: result.assetSymbol, assetName: result.assetName })}
         >
           <Bell className="size-3" />
+          <span className="ml-1.5">Tạo cảnh báo</span>
         </Button>
       </div>
     </motion.div>
@@ -123,6 +134,7 @@ function ResultCard({ result, index }: { result: ScanResult; index: number }) {
 
 export function RiskScannerSheet() {
   const { activeOverlay, closeOverlay } = useAppStore()
+  const isMobile = useIsMobile()
   const isOpen = activeOverlay === 'scanner'
 
   const [data, setData] = useState<ScanResponse | null>(null)
@@ -160,113 +172,137 @@ export function RiskScannerSheet() {
       .finally(() => setRefreshing(false))
   }
 
-  return (
-    <Sheet open={isOpen} onOpenChange={closeOverlay}>
-      <SheetContent side="right" className="w-full p-0 sm:max-w-lg">
-        <SheetHeader className="sr-only">
-          <SheetTitle>Quét rủi ro toàn diện</SheetTitle>
-          <SheetDescription>Kết quả quét rủi ro thị trường</SheetDescription>
-        </SheetHeader>
+  const title = 'Quét rủi ro toàn diện'
+  const desc = 'Kết quả quét rủi ro thị trường'
 
-        <ScrollArea className="h-full">
-          <div className="flex flex-col gap-4 p-4 pb-24">
-            {/* Header */}
-            <div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="size-5 text-amber-500" />
-                  <h3 className="text-lg font-bold">Quét rủi ro toàn diện</h3>
-                </div>
-                <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={refreshing}>
-                  <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
-                </Button>
-              </div>
-              {data && (
-                <p className="text-muted-foreground mt-1 text-xs">
-                  Cập nhật: {formatDateTime(data.scannedAt)} • {data.totalAnomalies} bất thường
-                </p>
-              )}
-            </div>
-
-            {/* Summary Cards */}
-            {loading ? (
-              <div className="grid grid-cols-3 gap-3">
-                <Skeleton className="h-20 rounded-lg" />
-                <Skeleton className="h-20 rounded-lg" />
-                <Skeleton className="h-20 rounded-lg" />
-              </div>
-            ) : data ? (
-              <div className="grid grid-cols-3 gap-3">
-                <SummaryCard
-                  icon={ShieldAlert}
-                  label="Cao"
-                  count={data.highRisk}
-                  color="text-red-600 dark:text-red-400"
-                  bg="bg-red-50 dark:bg-red-950/30"
-                  border="border-red-200 dark:border-red-800"
-                />
-                <SummaryCard
-                  icon={Shield}
-                  label="Trung bình"
-                  count={data.mediumRisk}
-                  color="text-amber-600 dark:text-amber-400"
-                  bg="bg-amber-50 dark:bg-amber-950/30"
-                  border="border-amber-200 dark:border-amber-800"
-                />
-                <SummaryCard
-                  icon={ShieldCheck}
-                  label="Thấp"
-                  count={data.lowRisk}
-                  color="text-emerald-600 dark:text-emerald-400"
-                  bg="bg-emerald-50 dark:bg-emerald-950/30"
-                  border="border-emerald-200 dark:border-emerald-800"
-                />
-              </div>
-            ) : null}
-
-            <Separator />
-
-            {/* Results */}
-            {loading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-28 rounded-lg" />
-                ))}
-              </div>
-            ) : !grouped || data?.totalAnomalies === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <ShieldCheck className="text-muted-foreground mb-3 size-12" />
-                <p className="font-medium">Không phát hiện bất thường</p>
-                <p className="text-muted-foreground text-sm">Thị trường đang ổn định</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {(Object.keys(SEVERITY_CONFIG) as Severity[]).map((sev) => {
-                  const items = grouped[sev]
-                  if (!items || items.length === 0) return null
-                  const config = SEVERITY_CONFIG[sev]
-                  const Icon = config.icon
-                  return (
-                    <div key={sev} className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Icon className={cn('size-4', config.color)} />
-                        <h4 className={cn('text-sm font-semibold', config.color)}>{config.label}</h4>
-                        <Badge variant="secondary" className="text-xs">{items.length}</Badge>
-                      </div>
-                      <div className="space-y-2">
-                        {items.map((r, i) => (
-                          <ResultCard key={`${r.assetSymbol}-${r.anomalyType}`} result={r} index={i} />
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
+  const renderContent = () => (
+    <div className="flex flex-col gap-4">
+      {/* Header */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="size-5 text-amber-500" />
+            <h3 className="text-lg font-bold">{title}</h3>
           </div>
-        </ScrollArea>
-      </SheetContent>
-    </Sheet>
+          <Button variant="ghost" size="sm" onClick={handleRefresh} disabled={refreshing} className="min-h-[44px] min-w-[44px]">
+            <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} />
+          </Button>
+        </div>
+        {data && (
+          <p className="text-muted-foreground mt-1 text-xs">
+            Cập nhật: {formatDateTime(data.scannedAt)} • {data.totalAnomalies} bất thường
+          </p>
+        )}
+      </div>
+
+      {/* Summary Cards - stack on mobile, 3 cols on tablet+ */}
+      {loading ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Skeleton className="h-20 rounded-lg" />
+          <Skeleton className="h-20 rounded-lg hidden sm:block" />
+          <Skeleton className="h-20 rounded-lg hidden sm:block" />
+        </div>
+      ) : data ? (
+        <div className="grid grid-cols-3 gap-3">
+          <SummaryCard
+            icon={ShieldAlert}
+            label="Cao"
+            count={data.highRisk}
+            color="text-red-600 dark:text-red-400"
+            bg="bg-red-50 dark:bg-red-950/30"
+            border="border-red-200 dark:border-red-800"
+          />
+          <SummaryCard
+            icon={Shield}
+            label="Trung bình"
+            count={data.mediumRisk}
+            color="text-amber-600 dark:text-amber-400"
+            bg="bg-amber-50 dark:bg-amber-950/30"
+            border="border-amber-200 dark:border-amber-800"
+          />
+          <SummaryCard
+            icon={ShieldCheck}
+            label="Thấp"
+            count={data.lowRisk}
+            color="text-emerald-600 dark:text-emerald-400"
+            bg="bg-emerald-50 dark:bg-emerald-950/30"
+            border="border-emerald-200 dark:border-emerald-800"
+          />
+        </div>
+      ) : null}
+
+      <Separator />
+
+      {/* Results - single column on mobile, grouped by severity */}
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 rounded-lg" />
+          ))}
+        </div>
+      ) : !grouped || data?.totalAnomalies === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <ShieldCheck className="text-muted-foreground mb-3 size-12" />
+          <p className="font-medium">Không phát hiện bất thường</p>
+          <p className="text-muted-foreground text-sm">Thị trường đang ổn định</p>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {(Object.keys(SEVERITY_CONFIG) as Severity[]).map((sev) => {
+            const items = grouped[sev]
+            if (!items || items.length === 0) return null
+            const config = SEVERITY_CONFIG[sev]
+            const Icon = config.icon
+            return (
+              <div key={sev} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <Icon className={cn('size-4', config.color)} />
+                  <h4 className={cn('text-sm font-semibold', config.color)}>{config.label}</h4>
+                  <Badge variant="secondary" className="text-xs">{items.length}</Badge>
+                </div>
+                <div className="space-y-2">
+                  {items.map((r, i) => (
+                    <ResultCard key={`${r.assetSymbol}-${r.anomalyType}`} result={r} index={i} />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      {/* Mobile: Drawer from bottom */}
+      <Drawer open={isMobile && isOpen} onOpenChange={closeOverlay}>
+        <DrawerContent className="max-h-[92vh]">
+          <DrawerHeader className="px-4 pt-2 text-left">
+            <DrawerTitle className="text-base">{title}</DrawerTitle>
+            <DrawerDescription className="text-xs">{desc}</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
+            {renderContent()}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Desktop: Sheet from right */}
+      <Sheet open={!isMobile && isOpen} onOpenChange={closeOverlay}>
+        <SheetContent side="right" className="w-full p-0 sm:max-w-lg">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>{desc}</SheetDescription>
+          </SheetHeader>
+          <ScrollArea className="h-full">
+            <div className="flex flex-col gap-4 p-4 md:p-6 pb-24">
+              {renderContent()}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }
 

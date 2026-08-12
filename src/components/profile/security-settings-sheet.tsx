@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Fingerprint, Lock, Timer, ShieldCheck, Trash2 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -31,10 +30,10 @@ import { useAppStore } from '@/store/app-store'
 type AutoLockValue = '1min' | '5min' | '15min' | 'never'
 
 const autoLockOptions: { key: AutoLockValue; label: string }[] = [
-  { key: '1min', label: 'Sau 1 phút' },
-  { key: '5min', label: 'Sau 5 phút' },
-  { key: '15min', label: 'Sau 15 phút' },
-  { key: 'never', label: 'Không bao giờ' },
+  { key: '1min', label: '1 phút' },
+  { key: '5min', label: '5 phút' },
+  { key: '15min', label: '15 phút' },
+  { key: 'never', label: 'Không' },
 ]
 
 export function SecuritySettingsSheet() {
@@ -54,15 +53,15 @@ export function SecuritySettingsSheet() {
         </SheetHeader>
 
         <div className="custom-scrollbar overflow-y-auto pb-24 -mx-6 px-6 space-y-6 mt-4">
-          {/* Biometric lock */}
+          {/* Biometric lock - full width, min 56px height */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             className="rounded-xl border bg-card p-4"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-[56px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
                   <Fingerprint className="h-5 w-5 text-emerald-500" />
                 </div>
                 <div>
@@ -70,7 +69,7 @@ export function SecuritySettingsSheet() {
                   <p className="text-xs text-muted-foreground">Sử dụng FaceID hoặc TouchID để mở khóa</p>
                 </div>
               </div>
-              <Switch checked={biometricEnabled} onCheckedChange={setBiometricEnabled} />
+              <Switch checked={biometricEnabled} onCheckedChange={setBiometricEnabled} className="scale-100 sm:scale-105" />
             </div>
           </motion.div>
 
@@ -81,9 +80,9 @@ export function SecuritySettingsSheet() {
             transition={{ delay: 0.05 }}
             className="rounded-xl border bg-card p-4"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-[56px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                   <Lock className="h-5 w-5 text-primary" />
                 </div>
                 <div>
@@ -94,6 +93,7 @@ export function SecuritySettingsSheet() {
               <Button
                 variant="outline"
                 size="sm"
+                className="shrink-0 min-h-[44px] px-4"
                 onClick={() => toast.info('Tính năng sắp ra mắt')}
               >
                 Thay đổi
@@ -108,8 +108,8 @@ export function SecuritySettingsSheet() {
             transition={{ delay: 0.1 }}
             className="rounded-xl border bg-card p-4 space-y-3"
           >
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <div className="flex items-center gap-3 min-h-[44px]">
+              <div className="h-10 w-10 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                 <Timer className="h-5 w-5 text-amber-500" />
               </div>
               <div>
@@ -117,13 +117,14 @@ export function SecuritySettingsSheet() {
                 <p className="text-xs text-muted-foreground">Khóa ứng dụng sau khoảng thời gian</p>
               </div>
             </div>
+            {/* Segmented control - proper sizing with min 44px touch targets */}
             <div className="flex rounded-lg bg-muted p-1 gap-1">
               {autoLockOptions.map((opt) => (
                 <button
                   key={opt.key}
                   onClick={() => setAutoLock(opt.key)}
                   className={cn(
-                    'flex-1 py-2 rounded-md text-xs font-medium transition-all',
+                    'flex-1 py-2.5 rounded-md text-xs font-medium transition-all min-h-[44px] flex items-center justify-center',
                     autoLock === opt.key
                       ? 'bg-background shadow-sm text-foreground'
                       : 'text-muted-foreground hover:text-foreground'
@@ -142,9 +143,9 @@ export function SecuritySettingsSheet() {
             transition={{ delay: 0.15 }}
             className="rounded-xl border bg-card p-4"
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between min-h-[56px]">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
                   <ShieldCheck className="h-5 w-5 text-blue-500" />
                 </div>
                 <div>
@@ -152,11 +153,11 @@ export function SecuritySettingsSheet() {
                   <p className="text-xs text-muted-foreground">Bảo vệ dữ liệu cục bộ bằng mã hóa AES-256</p>
                 </div>
               </div>
-              <Switch checked={encryptionEnabled} onCheckedChange={setEncryptionEnabled} />
+              <Switch checked={encryptionEnabled} onCheckedChange={setEncryptionEnabled} className="scale-100 sm:scale-105" />
             </div>
           </motion.div>
 
-          {/* Destructive: Clear all data */}
+          {/* Destructive: Clear all data - full width button */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -164,7 +165,7 @@ export function SecuritySettingsSheet() {
             className="rounded-xl border border-destructive/50 bg-destructive/5 p-4"
           >
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
                 <Trash2 className="h-5 w-5 text-destructive" />
               </div>
               <div className="flex-1">
@@ -174,10 +175,10 @@ export function SecuritySettingsSheet() {
                 </p>
               </div>
             </div>
-            <div className="mt-3">
+            <div className="mt-4">
               <AlertDialog>
                 <AlertDialogTrigger asChild>
-                  <Button variant="destructive" size="sm" className="w-full">
+                  <Button variant="destructive" size="lg" className="w-full h-12">
                     Xóa tất cả dữ liệu
                   </Button>
                 </AlertDialogTrigger>

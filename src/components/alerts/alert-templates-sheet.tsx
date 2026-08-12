@@ -4,11 +4,14 @@ import { useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Search, ArrowRight, BarChart3, TrendingUp, Activity, Zap, DollarSign, CalendarDays } from 'lucide-react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAppStore } from '@/store/app-store'
+import { useIsMobile } from '@/lib/hooks'
 import { cn } from '@/lib/utils'
 import type { AlertTemplate, AlertRiskLevel } from '@/lib/types'
 
@@ -84,7 +87,7 @@ function TemplateCard({
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-lg border bg-card p-4 transition-colors hover:bg-accent/30"
+      className="flex flex-col rounded-lg border bg-card p-4 transition-colors hover:bg-accent/30"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -117,10 +120,11 @@ function TemplateCard({
         {template.condition}
       </div>
 
+      {/* "Sử dụng" button - full width on mobile */}
       <Button
         size="sm"
         variant="outline"
-        className="mt-3 w-full gap-1.5 text-xs"
+        className="mt-3 min-h-[44px] w-full gap-1.5 text-xs sm:w-auto"
         onClick={onUse}
       >
         Sử dụng
@@ -152,6 +156,7 @@ function TemplateSkeleton() {
 
 export function AlertTemplatesSheet() {
   const { activeOverlay, overlayData, openOverlay, closeOverlay } = useAppStore()
+  const isMobile = useIsMobile()
   const [templates, setTemplates] = useState<AlertTemplate[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -205,73 +210,95 @@ export function AlertTemplatesSheet() {
     }, 200)
   }
 
-  return (
-    <Sheet open={open} onOpenChange={(v) => !v && closeOverlay()}>
-      <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col">
-        <SheetHeader>
-          <SheetTitle>Kho mẫu cảnh báo</SheetTitle>
-          <SheetDescription>
-            Các chuẩn rủi ro của chuyên gia
-          </SheetDescription>
-        </SheetHeader>
+  const title = 'Kho mẫu cảnh báo'
+  const desc = 'Các chuẩn rủi ro của chuyên gia'
 
-        <div className="mt-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Tìm mẫu cảnh báo..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
-          </div>
+  const renderContent = () => (
+    <div className="flex flex-col gap-4">
+      {/* Search - full width */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Tìm mẫu cảnh báo..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="h-11 pl-9 text-sm sm:h-10"
+        />
+      </div>
 
-          {/* Category tabs */}
-          <div className="flex flex-wrap gap-1.5">
-            {CATEGORIES.map((c) => (
-              <button
-                key={c.key}
-                onClick={() => setCategory(c.key)}
-                className={cn(
-                  'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                  category === c.key
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:bg-accent'
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
+      {/* Category filter chips - horizontal scrollable on mobile */}
+      <div className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none sm:flex-wrap">
+        {CATEGORIES.map((c) => (
+          <button
+            key={c.key}
+            onClick={() => setCategory(c.key)}
+            className={cn(
+              'min-h-[36px] shrink-0 rounded-full border px-3 text-xs font-medium transition-colors sm:shrink',
+              category === c.key
+                ? 'border-primary bg-primary/10 text-primary'
+                : 'border-border bg-background text-muted-foreground hover:bg-accent'
+            )}
+          >
+            {c.label}
+          </button>
+        ))}
+      </div>
 
-          {/* Template grid */}
-          {loading ? (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <TemplateSkeleton key={i} />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Search className="h-8 w-8 text-muted-foreground" />
-              <p className="mt-2 text-sm text-muted-foreground">
-                Không tìm thấy mẫu phù hợp
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2">
-              {filtered.map((tpl) => (
-                <TemplateCard
-                  key={tpl.id}
-                  template={tpl}
-                  onUse={() => handleUseTemplate(tpl)}
-                />
-              ))}
-            </div>
-          )}
+      {/* Template grid - 1 col on mobile, 2 on tablet+, 3 on desktop */}
+      {loading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <TemplateSkeleton key={i} />
+          ))}
         </div>
-      </SheetContent>
-    </Sheet>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Search className="h-8 w-8 text-muted-foreground" />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Không tìm thấy mẫu phù hợp
+          </p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((tpl) => (
+            <TemplateCard
+              key={tpl.id}
+              template={tpl}
+              onUse={() => handleUseTemplate(tpl)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  return (
+    <>
+      {/* Mobile: Drawer from bottom */}
+      <Drawer open={isMobile && open} onOpenChange={closeOverlay}>
+        <DrawerContent className="max-h-[92vh]">
+          <DrawerHeader className="px-4 pt-2 text-left">
+            <DrawerTitle className="text-base">{title}</DrawerTitle>
+            <DrawerDescription className="text-xs">{desc}</DrawerDescription>
+          </DrawerHeader>
+          <div className="overflow-y-auto flex-1 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
+            {renderContent()}
+          </div>
+        </DrawerContent>
+      </Drawer>
+
+      {/* Desktop: Sheet from right */}
+      <Sheet open={!isMobile && open} onOpenChange={(v) => !v && closeOverlay()}>
+        <SheetContent side="right" className="w-full p-0 sm:max-w-lg flex flex-col">
+          <SheetHeader>
+            <SheetTitle>{title}</SheetTitle>
+            <SheetDescription>{desc}</SheetDescription>
+          </SheetHeader>
+          <div className="mt-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+            {renderContent()}
+          </div>
+        </SheetContent>
+      </Sheet>
+    </>
   )
 }

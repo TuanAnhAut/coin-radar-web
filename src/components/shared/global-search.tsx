@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Search, X, TrendingUp, TrendingDown, Newspaper } from 'lucide-react'
+import { Search, X, TrendingUp, TrendingDown, Newspaper, Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/app-store'
 import type { Asset, NewsArticle } from '@/lib/types'
@@ -31,6 +32,15 @@ function getTypeLabel(type: string): string {
   }
 }
 
+function getTypeBadgeStyle(type: string): string {
+  switch (type) {
+    case 'stock': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    case 'crypto': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+    case 'gold': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    default: return 'bg-muted text-muted-foreground'
+  }
+}
+
 export function GlobalSearch() {
   const { searchOpen, setSearchOpen, openOverlay } = useAppStore()
   const [query, setQuery] = useState('')
@@ -44,7 +54,6 @@ export function GlobalSearch() {
   // Focus input when opening
   useEffect(() => {
     if (searchOpen) {
-      // Reset state on open
       setQuery('')
       setAssets([])
       setNews([])
@@ -84,7 +93,6 @@ export function GlobalSearch() {
       const assetsJson = await assetsRes.json()
       const newsJson = await newsRes.json()
 
-      // Filter news client-side (API doesn't support search)
       const lowerQ = q.toLowerCase()
       const allNews = newsJson.data as NewsArticle[]
       const filteredNews = allNews.filter(
@@ -124,77 +132,84 @@ export function GlobalSearch() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
         >
-          {/* Backdrop */}
+          {/* Backdrop - dismiss on tap on mobile */}
           <div
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setSearchOpen(false)}
           />
 
-          {/* Content */}
+          {/* Content - full screen on mobile, centered panel on desktop */}
           <motion.div
-            className="relative mx-auto mt-[15vh] w-[calc(100%-2rem)] max-w-lg rounded-2xl border bg-background shadow-2xl overflow-hidden"
+            className={cn(
+              'relative bg-background shadow-2xl overflow-hidden',
+              // Mobile: full screen with safe area padding
+              'inset-0 sm:inset-auto sm:mt-[12vh] sm:mx-auto sm:w-[calc(100%-2rem)] sm:max-w-lg sm:rounded-2xl sm:border'
+            )}
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.95 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
           >
-            {/* Search Input */}
-            <div className="flex items-center gap-3 border-b px-4 py-3">
+            {/* Search Input - large and prominent with pt-16 safe area on mobile */}
+            <div className="flex items-center gap-3 border-b px-4 pt-[env(safe-area-inset-top,0px)] sm:pt-0 py-3 sm:py-3">
               <Search className="h-5 w-5 text-muted-foreground flex-shrink-0" />
               <Input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => handleInputChange(e.target.value)}
                 placeholder="Tìm kiếm tài sản, tin tức..."
-                className="border-0 shadow-none focus-visible:ring-0 h-auto p-0 text-base"
+                className="border-0 shadow-none focus-visible:ring-0 h-auto p-0 text-lg"
               />
               <button
-                className="flex-shrink-0 rounded-md p-1 hover:bg-accent transition-colors"
+                className="flex-shrink-0 rounded-md p-2 hover:bg-accent transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 onClick={() => setSearchOpen(false)}
                 aria-label="Đóng"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Results */}
-            <ScrollArea className="max-h-[50vh]">
-              <div className="p-2">
+            <ScrollArea className="max-h-[calc(100vh-8rem)] sm:max-h-[50vh]">
+              <div className="p-2 sm:p-2">
+                {/* Loading state - centered spinner */}
                 {loading && (
-                  <div className="space-y-3 p-3">
-                    <Skeleton className="h-4 w-24" />
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-12 w-full rounded-lg" />
-                    ))}
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <Loader2 className="h-8 w-8 text-muted-foreground animate-spin" />
+                    <p className="text-sm text-muted-foreground">Đang tìm kiếm...</p>
                   </div>
                 )}
 
+                {/* Empty state - centered */}
                 {hasNoResults && (
-                  <div className="py-12 text-center">
-                    <Search className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                      <Search className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                    <p className="text-sm text-muted-foreground text-center px-4">
                       Không tìm thấy kết quả cho &quot;{query}&quot;
                     </p>
                   </div>
                 )}
 
+                {/* Asset results - clear type badges, price, change% */}
                 {!loading && assets.length > 0 && (
                   <div className="mb-2">
                     <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                      Tài sản
+                      Tài sản ({assets.length})
                     </p>
                     {assets.map((asset) => {
                       const isPositive = asset.changePercent >= 0
                       return (
                         <button
                           key={asset.id}
-                          className="flex items-center gap-3 w-full rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-accent"
+                          className="flex items-center gap-3 w-full rounded-lg px-2 py-3 min-h-[60px] text-left transition-colors hover:bg-accent"
                           onClick={() => {
                             setSearchOpen(false)
                             openOverlay('asset-detail', { symbol: asset.symbol })
                           }}
                         >
-                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted flex-shrink-0">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted flex-shrink-0">
                             <span className="text-xs font-bold text-muted-foreground">
                               {asset.symbol.slice(0, 2)}
                             </span>
@@ -202,11 +217,14 @@ export function GlobalSearch() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-sm">{asset.symbol}</span>
-                              <span className="text-[10px] text-muted-foreground">
+                              <Badge
+                                variant="secondary"
+                                className={cn('text-[10px] font-medium px-1.5 py-0', getTypeBadgeStyle(asset.type))}
+                              >
                                 {getTypeLabel(asset.type)}
-                              </span>
+                              </Badge>
                             </div>
-                            <p className="text-xs text-muted-foreground truncate">
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
                               {asset.name}
                             </p>
                           </div>
@@ -229,26 +247,29 @@ export function GlobalSearch() {
                   </div>
                 )}
 
+                {/* News results - title and source properly sized */}
                 {!loading && news.length > 0 && (
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                      Tin tức
+                      Tin tức ({news.length})
                     </p>
                     {news.map((article) => (
                       <button
                         key={article.id}
-                        className="flex items-start gap-3 w-full rounded-lg px-2 py-2.5 text-left transition-colors hover:bg-accent"
+                        className="flex items-start gap-3 w-full rounded-lg px-2 py-3 min-h-[60px] text-left transition-colors hover:bg-accent"
                         onClick={() => {
                           setSearchOpen(false)
                           openOverlay('news-detail', { id: article.id })
                         }}
                       >
-                        <Newspaper className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted flex-shrink-0 mt-0.5">
+                          <Newspaper className="h-4 w-4 text-muted-foreground" />
+                        </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium leading-snug line-clamp-2">
                             {article.title}
                           </p>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {article.source}
                           </p>
                         </div>

@@ -29,32 +29,39 @@ const navItems: { view: ViewType; label: string; icon: typeof LayoutDashboard }[
 ]
 
 export function SidebarNav() {
-  const { currentView, setCurrentView, sidebarCollapsed, toggleSidebar } =
+  const { currentView, setCurrentView, sidebarCollapsed, setSidebarCollapsed } =
     useAppStore()
 
   // Sync collapsed state with screen size
+  // Sidebar shows at xl (1280px+), auto-collapse below xl
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth < 1280 && !sidebarCollapsed) {
-        useAppStore.getState().setSidebarCollapsed(true)
+      const width = window.innerWidth
+      if (width < 1280 && !sidebarCollapsed) {
+        setSidebarCollapsed(true)
       }
     }
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [sidebarCollapsed])
+  }, [sidebarCollapsed, setSidebarCollapsed])
 
   return (
     <aside
       className={cn(
-        'hidden lg:flex flex-col fixed left-0 top-14 bottom-0 z-30 border-r bg-sidebar text-sidebar-foreground transition-all duration-300 ease-in-out',
-        sidebarCollapsed ? 'w-16' : 'w-64'
+        // Hidden below xl, shown at xl+ (1280px+)
+        'hidden xl:flex flex-col fixed left-0 top-12 xl:top-14 bottom-0 z-30',
+        'border-r bg-sidebar text-sidebar-foreground',
+        // Smooth transition for collapse/expand
+        'transition-all duration-300 ease-in-out',
+        sidebarCollapsed ? 'w-[68px]' : 'w-64'
       )}
     >
       {/* Logo area */}
       <div
         className={cn(
-          'flex h-14 items-center border-b px-4',
+          'flex items-center border-b px-3 xl:px-4',
+          'h-12 xl:h-14',
           sidebarCollapsed && 'justify-center px-2'
         )}
       >
@@ -63,7 +70,7 @@ export function SidebarNav() {
             <Radar className="h-4 w-4 text-sidebar-primary-foreground" />
           </div>
           {!sidebarCollapsed && (
-            <span className="font-semibold tracking-tight text-sm">
+            <span className="font-semibold tracking-tight text-sm whitespace-nowrap">
               Coin Radar
             </span>
           )}
@@ -71,7 +78,7 @@ export function SidebarNav() {
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className="flex-1 space-y-1 p-2 overflow-y-auto custom-scrollbar">
         {navItems.map((item) => {
           const isActive = currentView === item.view
           const Icon = item.icon
@@ -81,22 +88,28 @@ export function SidebarNav() {
               key={item.view}
               onClick={() => setCurrentView(item.view)}
               className={cn(
-                'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                'flex w-full items-center gap-3 rounded-lg text-sm font-medium transition-all duration-200',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring',
                 'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                isActive &&
-                  'bg-sidebar-accent text-sidebar-accent-foreground',
-                sidebarCollapsed && 'justify-center px-0'
+                // Minimum touch target
+                'min-h-[44px]',
+                isActive
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-sidebar-foreground/70',
+                sidebarCollapsed ? 'justify-center px-0' : 'px-3 py-2.5'
               )}
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >
               <Icon
-                className={cn('h-5 w-5 shrink-0',
+                className={cn(
+                  'h-5 w-5 shrink-0 transition-transform duration-200',
                   isActive && 'scale-110'
                 )}
               />
-              {!sidebarCollapsed && <span>{item.label}</span>}
+              {!sidebarCollapsed && (
+                <span className="whitespace-nowrap">{item.label}</span>
+              )}
             </button>
           )
 
@@ -121,20 +134,19 @@ export function SidebarNav() {
           <TooltipTrigger asChild>
             <Button
               variant="ghost"
-              size="icon"
               className={cn(
-                'w-full',
-                sidebarCollapsed ? 'h-9 w-9' : 'h-9 w-full justify-start gap-3 px-3'
+                'w-full min-h-[44px]',
+                sidebarCollapsed ? 'h-10 w-10 mx-auto' : 'h-10 justify-start gap-3 px-3'
               )}
-              onClick={toggleSidebar}
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               aria-label={sidebarCollapsed ? 'Mở rộng' : 'Thu gọn'}
             >
               {sidebarCollapsed ? (
                 <PanelLeftOpen className="h-4 w-4" />
               ) : (
                 <>
-                  <PanelLeftClose className="h-4 w-4" />
-                  <span className="text-sm">Thu gọn</span>
+                  <PanelLeftClose className="h-4 w-4 shrink-0" />
+                  <span className="text-sm whitespace-nowrap">Thu gọn</span>
                 </>
               )}
             </Button>

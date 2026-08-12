@@ -8,9 +8,7 @@ import {
   Shield,
   Crown,
   Edit2,
-  TrendingUp,
   ShieldCheck,
-  Wallet,
   Eye,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -37,14 +35,14 @@ const statCards = [
     bg: 'bg-emerald-100 dark:bg-emerald-900/30',
   },
   {
-    icon: Wallet,
-    label: 'Tổng tài sản',
+    icon: Eye,
+    label: 'Tổng giá trị theo dõi',
     value: '1.25 tỷ ₫',
-    color: 'text-blue-500',
-    bg: 'bg-blue-100 dark:bg-blue-900/30',
+    color: 'text-emerald-500',
+    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
   },
   {
-    icon: Eye,
+    icon: Briefcase,
     label: 'Mã theo dõi',
     value: '8',
     color: 'text-violet-500',
@@ -56,8 +54,8 @@ const settingsItems = [
   {
     key: 'portfolio',
     icon: Briefcase,
-    label: 'Quản lý danh mục đầu tư',
-    description: 'Theo dõi và quản lý các tài sản của bạn',
+    label: 'Quản lý danh mục theo dõi',
+    description: 'Theo dõi giá và biến động các tài sản',
   },
   {
     key: 'notification-settings',
@@ -106,32 +104,32 @@ export function ProfileDashboard() {
       variants={containerVariants}
       initial="hidden"
       animate="show"
-      className="space-y-6"
+      className="space-y-4 sm:space-y-6"
     >
       {/* Profile card */}
       <motion.div variants={itemVariants}>
         <Card className="border-0 shadow-sm">
-          <CardContent className="p-5">
-            <div className="flex items-center gap-4">
-              {/* Avatar */}
-              <div className="h-16 w-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shrink-0">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center gap-3 sm:gap-4">
+              {/* Avatar - smaller on mobile, larger on desktop */}
+              <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center text-white font-bold text-lg sm:text-xl shadow-lg shrink-0">
                 NA
               </div>
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-bold text-lg truncate">Nguyễn Văn A</h3>
-                  <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 text-xs font-medium">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-base sm:text-lg lg:text-xl truncate">Nguyễn Văn A</h3>
+                  <Badge className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 text-[10px] sm:text-xs font-medium shrink-0">
                     Free
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground truncate">
+                <p className="text-sm text-muted-foreground truncate mt-0.5">
                   nguyenvana@email.com
                 </p>
               </div>
 
-              {/* Edit button */}
+              {/* Edit button - hide text on small mobile */}
               <Button
                 variant="outline"
                 size="sm"
@@ -139,24 +137,24 @@ export function ProfileDashboard() {
                 onClick={() => toast.info('Tính năng sắp ra mắt')}
               >
                 <Edit2 className="h-3.5 w-3.5" />
-                Chỉnh sửa
+                <span className="hidden sm:inline">Chỉnh sửa</span>
               </Button>
             </div>
           </CardContent>
         </Card>
       </motion.div>
 
-      {/* Stats grid */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+      {/* Stats grid - 2 cols on mobile, 4 cols on desktop */}
+      <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {statCards.map((stat) => (
           <Card key={stat.label} className="border-0 shadow-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2.5">
-                <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center', stat.bg)}>
-                  <stat.icon className={cn('h-4.5 w-4.5', stat.color)} />
+            <CardContent className="p-3 sm:p-4">
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <div className={cn('h-9 w-9 rounded-lg flex items-center justify-center shrink-0', stat.bg)}>
+                  <stat.icon className={cn('h-4 w-4', stat.color)} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground truncate">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
                     {stat.label}
                   </p>
                   <p className="text-sm font-bold truncate">{stat.value}</p>
@@ -174,7 +172,7 @@ export function ProfileDashboard() {
             {settingsItems.map((item, index) => (
               <div key={item.key}>
                 <button
-                  className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 min-h-[60px] hover:bg-muted/50 transition-colors text-left"
                   onClick={() => openOverlay(item.key as OverlayType)}
                 >
                   <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
@@ -201,7 +199,7 @@ export function ProfileDashboard() {
                   </svg>
                 </button>
                 {index < settingsItems.length - 1 && (
-                  <Separator className="ml-[4.5rem]" />
+                  <Separator className="ml-[3.75rem] sm:ml-[4.5rem]" />
                 )}
               </div>
             ))}

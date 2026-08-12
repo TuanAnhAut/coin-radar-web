@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import { Area, AreaChart, ResponsiveContainer, YAxis } from 'recharts'
 import { TrendingUp, ChevronRight } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/app-store'
@@ -67,16 +66,16 @@ export function PortfolioSummary() {
 
   if (loading) {
     return (
-      <Card className="py-4 gap-4">
-        <CardContent className="space-y-4 px-4 pt-0">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-8 w-48" />
-          <div className="flex gap-6">
-            <Skeleton className="h-16 w-32" />
-            <Skeleton className="h-16 w-32" />
+      <Card className="overflow-hidden">
+        <CardContent className="space-y-4 p-4 sm:p-5">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-8 w-40 sm:h-9 sm:w-56" />
+          <div className="flex gap-4">
+            <Skeleton className="h-14 w-28 flex-1" />
+            <Skeleton className="h-14 w-28 flex-1" />
           </div>
-          <Skeleton className="h-16 w-full" />
-          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-2.5 w-full" />
+          <Skeleton className="h-14 w-full" />
         </CardContent>
       </Card>
     )
@@ -84,8 +83,8 @@ export function PortfolioSummary() {
 
   if (error || !portfolio) {
     return (
-      <Card className="py-4 gap-4">
-        <CardContent className="px-4 pt-0">
+      <Card className="overflow-hidden">
+        <CardContent className="p-4 sm:p-5">
           <p className="text-sm text-muted-foreground">{error ?? 'Không có dữ liệu'}</p>
         </CardContent>
       </Card>
@@ -105,35 +104,38 @@ export function PortfolioSummary() {
       transition={{ duration: 0.4 }}
     >
       <Card
-        className="cursor-pointer transition-shadow hover:shadow-md py-4 gap-4"
+        className="cursor-pointer overflow-hidden transition-shadow hover:shadow-md"
         onClick={() => openOverlay('portfolio')}
       >
-        <CardContent className="space-y-4 px-4 pt-0">
+        <CardContent className="space-y-4 p-4 sm:p-5">
           {/* Header */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-muted-foreground">
-              Tổng tài sản
+              Tổng giá trị theo dõi
             </span>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </div>
 
-          {/* Total Value */}
+          {/* Total Value - larger on mobile, even larger on md+ */}
           <div>
-            <p className="text-2xl font-bold tracking-tight md:text-3xl">
+            <p className="text-2xl font-bold tracking-tight sm:text-3xl">
               {formatVND(portfolio.totalValue)}
             </p>
           </div>
 
-          {/* Daily & Monthly Changes */}
-          <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <div>
-              <p className="text-xs text-muted-foreground mb-0.5">Hôm nay</p>
-              <div className="flex items-center gap-1.5">
-                <span className={cn('text-sm font-semibold', isDailyPositive ? 'text-gain' : 'text-loss')}>
+          {/* Daily & Monthly Changes - stack on mobile, row on md+ */}
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2">
+            <div className="rounded-lg bg-muted/50 p-2.5 sm:p-3">
+              <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">Hôm nay</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={cn(
+                  'text-sm sm:text-base font-bold leading-tight',
+                  isDailyPositive ? 'text-gain' : 'text-loss'
+                )}>
                   {isDailyPositive ? '+' : ''}{formatVND(portfolio.dailyChange)}
                 </span>
                 <span className={cn(
-                  'inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium',
+                  'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] sm:text-xs font-medium',
                   isDailyPositive ? 'bg-gain-soft text-gain' : 'bg-loss-soft text-loss'
                 )}>
                   <TrendingUp className={cn('h-3 w-3', !isDailyPositive && 'rotate-180')} />
@@ -141,14 +143,17 @@ export function PortfolioSummary() {
                 </span>
               </div>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-0.5">Tháng này</p>
-              <div className="flex items-center gap-1.5">
-                <span className={cn('text-sm font-semibold', isMonthlyPositive ? 'text-gain' : 'text-loss')}>
+            <div className="rounded-lg bg-muted/50 p-2.5 sm:p-3">
+              <p className="text-[11px] sm:text-xs text-muted-foreground mb-1">Tháng này</p>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className={cn(
+                  'text-sm sm:text-base font-bold leading-tight',
+                  isMonthlyPositive ? 'text-gain' : 'text-loss'
+                )}>
                   {isMonthlyPositive ? '+' : ''}{formatVND(portfolio.monthlyChange)}
                 </span>
                 <span className={cn(
-                  'inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-xs font-medium',
+                  'inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] sm:text-xs font-medium',
                   isMonthlyPositive ? 'bg-gain-soft text-gain' : 'bg-loss-soft text-loss'
                 )}>
                   <TrendingUp className={cn('h-3 w-3', !isMonthlyPositive && 'rotate-180')} />
@@ -158,57 +163,54 @@ export function PortfolioSummary() {
             </div>
           </div>
 
-          {/* Risk Score & Sparkline Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Risk Score */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Điểm rủi ro</span>
-                <span className="text-xs font-semibold" style={{ color: riskColor }}>
-                  {portfolio.riskScore}/100 · {riskLabel}
-                </span>
-              </div>
-              <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{
-                    width: `${portfolio.riskScore}%`,
-                    backgroundColor: riskColor,
-                  }}
-                />
-              </div>
+          {/* Risk Score Bar - full width */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Chỉ số rủi ro thị trường</span>
+              <span className="text-xs font-semibold" style={{ color: riskColor }}>
+                {portfolio.riskScore}/100 · {riskLabel}
+              </span>
             </div>
+            <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${portfolio.riskScore}%`,
+                  backgroundColor: riskColor,
+                }}
+              />
+            </div>
+          </div>
 
-            {/* Sparkline */}
-            <div className="h-12">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={sparklineData}>
-                  <defs>
-                    <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop
-                        offset="0%"
-                        stopColor={isMonthlyPositive ? 'oklch(0.7 0.15 145)' : 'oklch(0.6 0.2 25)'}
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="100%"
-                        stopColor={isMonthlyPositive ? 'oklch(0.7 0.15 145)' : 'oklch(0.6 0.2 25)'}
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <YAxis domain={['dataMin', 'dataMax']} hide />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke={isMonthlyPositive ? 'oklch(0.7 0.15 145)' : 'oklch(0.6 0.2 25)'}
-                    strokeWidth={1.5}
-                    fill="url(#sparkGradient)"
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+          {/* Sparkline Chart - full width on all screens */}
+          <div className="h-14 sm:h-16 -mx-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={sparklineData}>
+                <defs>
+                  <linearGradient id="sparkGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop
+                      offset="0%"
+                      stopColor={isMonthlyPositive ? 'oklch(0.7 0.15 145)' : 'oklch(0.6 0.2 25)'}
+                      stopOpacity={0.3}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor={isMonthlyPositive ? 'oklch(0.7 0.15 145)' : 'oklch(0.6 0.2 25)'}
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <YAxis domain={['dataMin', 'dataMax']} hide />
+                <Area
+                  type="monotone"
+                  dataKey="value"
+                  stroke={isMonthlyPositive ? 'oklch(0.7 0.15 145)' : 'oklch(0.6 0.2 25)'}
+                  strokeWidth={1.5}
+                  fill="url(#sparkGradient)"
+                  isAnimationActive={false}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
