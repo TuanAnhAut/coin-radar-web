@@ -1,0 +1,667 @@
+   323→        </div>
+   324→      )}
+   325→
+   326→      {/* Condition type selector - full width on mobile, 3 cols on desktop */}
+   327→      <div>
+   328→        <Label className="text-sm font-medium mb-2 block">Loại điều kiện</Label>
+   329→        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+   330→          {CONDITION_TYPES.map((ct) => (
+   331→            <button
+   332→              key={ct.key}
+   333→              onClick={() => setConditionType(ct.key)}
+   334→              className={cn(
+   335→                'flex min-h-[52px] items-center justify-center gap-2 rounded-lg border p-3 text-center transition-colors',
+   336→                conditionType === ct.key
+   337→                  ? 'border-primary bg-primary/10 text-primary'
+   338→                  : 'border-border text-muted-foreground hover:bg-accent'
+   339→              )}
+   340→            >
+   341→              <ct.icon className="h-5 w-5 shrink-0" />
+   342→              <span className="text-xs font-medium whitespace-nowrap">{ct.label}</span>
+   343→            </button>
+   344→          ))}
+   345→        </div>
+   346→      </div>
+   347→
+   348→      {/* Technical indicator options */}
+   349→      {conditionType === 'technical' && (
+   350→        <div className="space-y-3">
+   351→          <Label className="text-sm font-medium">Chỉ báo</Label>
+   352→          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+   353→            {INDICATORS.map((ind) => (
+   354→              <button
+   355→                key={ind.key}
+   356→                onClick={() => setIndicator(ind.key)}
+   357→                className={cn(
+   358→                  'flex min-h-[52px] items-center rounded-lg border p-3 text-left transition-colors',
+   359→                  indicator === ind.key
+   360→                    ? 'border-primary bg-primary/10'
+   361→                    : 'border-border hover:bg-accent'
+   362→                )}
+   363→              >
+   364→                <div className="min-w-0">
+   365→                  <p className={cn('text-sm font-semibold', indicator === ind.key ? 'text-primary' : '')}>{ind.label}</p>
+   366→                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{ind.desc}</p>
+   367→                </div>
+   368→              </button>
+   369→            ))}
+   370→          </div>
+   371→
+   372→          {/* Indicator-specific config - full width inputs and sliders */}
+   373→          {indicator === 'RSI' && (
+   374→            <div className="space-y-3 rounded-lg border p-4">
+   375→              <Label className="text-sm font-medium">Ngưỡng RSI</Label>
+   376→              <div className="flex items-center gap-3">
+   377→                <span className="shrink-0 text-xs text-muted-foreground w-14">Quá mua</span>
+   378→                <Slider
+   379→                  value={[(indicatorConfig.rsiOverbought as number) ?? 70]}
+   380→                  min={60}
+   381→                  max={90}
+   382→                  step={1}
+   383→                  onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, rsiOverbought: v })}
+   384→                  className="flex-1"
+   385→                />
+   386→                <Badge variant="outline" className="w-10 shrink-0 justify-center font-mono text-xs">
+   387→                  {(indicatorConfig.rsiOverbought as number) ?? 70}
+   388→                </Badge>
+   389→              </div>
+   390→              <div className="flex items-center gap-3">
+   391→                <span className="shrink-0 text-xs text-muted-foreground w-14">Quá bán</span>
+   392→                <Slider
+   393→                  value={[(indicatorConfig.rsiOversold as number) ?? 30]}
+   394→                  min={10}
+   395→                  max={40}
+   396→                  step={1}
+   397→                  onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, rsiOversold: v })}
+   398→                  className="flex-1"
+   399→                />
+   400→                <Badge variant="outline" className="w-10 shrink-0 justify-center font-mono text-xs">
+   401→                  {(indicatorConfig.rsiOversold as number) ?? 30}
+   402→                </Badge>
+   403→              </div>
+   404→            </div>
+   405→          )}
+   406→
+   407→          {indicator === 'MACD' && (
+   408→            <div className="space-y-3 rounded-lg border p-4">
+   409→              <Label className="text-sm font-medium">Hướng cắt</Label>
+   410→              {/* Direction buttons - full width on mobile */}
+   411→              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+   412→                {[
+   413→                  { key: 'bullish', label: 'Cắt lên (Tín hiệu mua)', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
+   414→                  { key: 'bearish', label: 'Cắt xuống (Tín hiệu bán)', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
+   415→                ].map((opt) => (
+   416→                  <button
+   417→                    key={opt.key}
+   418→                    onClick={() => setIndicatorConfig({ ...indicatorConfig, macdDirection: opt.key })}
+   419→                    className={cn(
+   420→                      'flex min-h-[48px] items-center gap-2 rounded-lg border p-3 transition-colors',
+   421→                      indicatorConfig.macdDirection === opt.key
+   422→                        ? opt.color
+   423→                        : 'border-border hover:bg-accent'
+   424→                    )}
+   425→                  >
+   426→                    <opt.icon className="h-4 w-4 shrink-0" />
+   427→                    <span className="text-xs font-medium">{opt.label}</span>
+   428→                  </button>
+   429→                ))}
+   430→              </div>
+   431→            </div>
+   432→          )}
+   433→
+   434→          {indicator === 'MA' && (
+   435→            <div className="space-y-3 rounded-lg border p-4">
+   436→              <Label className="text-sm font-medium">Kỳ MA</Label>
+   437→              <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-none">
+   438→                {[20, 50, 100].map((period) => (
+   439→                  <button
+   440→                    key={period}
+   441→                    onClick={() => setIndicatorConfig({ ...indicatorConfig, maPeriod: period })}
+   442→                    className={cn(
+   443→                      'min-h-[40px] shrink-0 rounded-full border px-4 py-1.5 text-sm font-medium transition-colors',
+   444→                      indicatorConfig.maPeriod === period
+   445→                        ? 'border-primary bg-primary/10 text-primary'
+   446→                        : 'border-border text-muted-foreground hover:bg-accent'
+   447→                    )}
+   448→                  >
+   449→                    MA{period}
+   450→                  </button>
+   451→                ))}
+   452→              </div>
+   453→              <Label className="text-sm font-medium mt-2">Hướng</Label>
+   454→              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+   455→                {[
+   456→                  { key: 'above', label: 'Giá trên MA', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
+   457→                  { key: 'below', label: 'Giá dưới MA', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
+   458→                ].map((opt) => (
+   459→                  <button
+   460→                    key={opt.key}
+   461→                    onClick={() => setIndicatorConfig({ ...indicatorConfig, maDirection: opt.key })}
+   462→                    className={cn(
+   463→                      'flex min-h-[48px] items-center gap-2 rounded-lg border p-3 transition-colors',
+   464→                      indicatorConfig.maDirection === opt.key
+   465→                        ? opt.color
+   466→                        : 'border-border hover:bg-accent'
+   467→                    )}
+   468→                  >
+   469→                    <opt.icon className="h-4 w-4 shrink-0" />
+   470→                    <span className="text-xs font-medium">{opt.label}</span>
+   471→                  </button>
+   472→                ))}
+   473→              </div>
+   474→            </div>
+   475→          )}
+   476→
+   477→          {indicator === 'ATR' && (
+   478→            <div className="space-y-3 rounded-lg border p-4">
+   479→              <Label className="text-sm font-medium">Hệ số dãn rộng ATR</Label>
+   480→              <Slider
+   481→                value={[(indicatorConfig.atrMultiplier as number) ?? 2]}
+   482→                min={1.5}
+   483→                max={4}
+   484→                step={0.1}
+   485→                onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, atrMultiplier: v })}
+   486→              />
+   487→              <div className="text-center">
+   488→                <Badge variant="outline" className="font-mono text-xs">{((indicatorConfig.atrMultiplier as number) ?? 2).toFixed(1)}x</Badge>
+   489→              </div>
+   490→            </div>
+   491→          )}
+   492→
+   493→          {indicator === 'Volume' && (
+   494→            <div className="space-y-3 rounded-lg border p-4">
+   495→              <Label className="text-sm font-medium">Tăng khối lượng (%)</Label>
+   496→              <Slider
+   497→                value={[(indicatorConfig.volumeIncrease as number) ?? 200]}
+   498→                min={50}
+   499→                max={500}
+   500→                step={10}
+   501→                onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, volumeIncrease: v })}
+   502→              />
+   503→              <div className="text-center">
+   504→                <Badge variant="outline" className="font-mono text-xs">{(indicatorConfig.volumeIncrease as number) ?? 200}%</Badge>
+   505→              </div>
+   506→            </div>
+   507→          )}
+   508→        </div>
+   509→      )}
+   510→
+   511→      {/* Price condition */}
+   512→      {conditionType === 'price' && (
+   513→        <div className="space-y-3 rounded-lg border p-4">
+   514→          <Label className="text-sm font-medium">Mức giá mục tiêu</Label>
+   515→          <Input
+   516→            type="number"
+   517→            placeholder="Nhập mức giá..."
+   518→            className="h-12 text-sm sm:h-10"
+   519→            value={(indicatorConfig.targetPrice as number) ?? ''}
+   520→            onChange={(e) => setIndicatorConfig({ ...indicatorConfig, targetPrice: parseFloat(e.target.value) || 0 })}
+   521→          />
+   522→          <Label className="text-sm font-medium mt-2">Hướng</Label>
+   523→          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+   524→            {[
+   525→              { key: 'above', label: 'Giá vượt lên trên', icon: TrendingUp, color: 'text-gain border-gain/30 bg-gain-soft' },
+   526→              { key: 'below', label: 'Giá rơi xuống dưới', icon: TrendingDown, color: 'text-loss border-loss/30 bg-loss-soft' },
+   527→            ].map((opt) => (
+   528→              <button
+   529→                key={opt.key}
+   530→                onClick={() => setIndicatorConfig({ ...indicatorConfig, priceDirection: opt.key })}
+   531→                className={cn(
+   532→                  'flex min-h-[48px] items-center gap-2 rounded-lg border p-3 transition-colors',
+   533→                  indicatorConfig.priceDirection === opt.key
+   534→                    ? opt.color
+   535→                    : 'border-border hover:bg-accent'
+   536→                )}
+   537→              >
+   538→                <opt.icon className="h-4 w-4 shrink-0" />
+   539→                <span className="text-xs font-medium">{opt.label}</span>
+   540→              </button>
+   541→            ))}
+   542→          </div>
+   543→        </div>
+   544→      )}
+   545→
+   546→      {/* Volatility condition */}
+   547→      {conditionType === 'volatility' && (
+   548→        <div className="space-y-3 rounded-lg border p-4">
+   549→          <Label className="text-sm font-medium">Biến động (%)</Label>
+   550→          <Slider
+   551→            value={[(indicatorConfig.volatilityPercent as number) ?? 5]}
+   552→            min={1}
+   553→            max={20}
+   554→            step={0.5}
+   555→            onValueChange={([v]) => setIndicatorConfig({ ...indicatorConfig, volatilityPercent: v })}
+   556→          />
+   557→          <div className="text-center">
+   558→            <Badge variant="outline" className="font-mono text-xs">{((indicatorConfig.volatilityPercent as number) ?? 5).toFixed(1)}%</Badge>
+   559→          </div>
+   560→          <Label className="text-sm font-medium mt-2">Khung thời gian</Label>
+   561→          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-none">
+   562→            {[
+   563→              { key: '1h', label: '1 giờ' },
+   564→              { key: '4h', label: '4 giờ' },
+   565→              { key: '1d', label: '1 ngày' },
+   566→              { key: '1w', label: '1 tuần' },
+   567→            ].map((tf) => (
+   568→              <button
+   569→                key={tf.key}
+   570→                onClick={() => setIndicatorConfig({ ...indicatorConfig, timeframe: tf.key })}
+   571→                className={cn(
+   572→                  'min-h-[40px] shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+   573→                  indicatorConfig.timeframe === tf.key
+   574→                    ? 'border-primary bg-primary/10 text-primary'
+   575→                    : 'border-border text-muted-foreground hover:bg-accent'
+   576→                )}
+   577→              >
+   578→                {tf.label}
+   579→              </button>
+   580→            ))}
+   581→          </div>
+   582→        </div>
+   583→      )}
+   584→    </motion.div>
+   585→  )
+   586→}
+   587→
+   588→// ---------- Step 3: Settings ----------
+   589→function StepSettings({
+   590→  riskLevel,
+   591→  setRiskLevel,
+   592→  actionType,
+   593→  setActionType,
+   594→  summary,
+   595→  submitting,
+   596→  onSubmit,
+   597→}: {
+   598→  riskLevel: AlertRiskLevel
+   599→  setRiskLevel: (v: AlertRiskLevel) => void
+   600→  actionType: string
+   601→  setActionType: (v: string) => void
+   602→  summary: { label: string; value: string }[]
+   603→  submitting: boolean
+   604→  onSubmit: () => void
+   605→}) {
+   606→  return (
+   607→    <motion.div
+   608→      initial={{ opacity: 0, x: 20 }}
+   609→      animate={{ opacity: 1, x: 0 }}
+   610→      exit={{ opacity: 0, x: -20 }}
+   611→      className="space-y-4"
+   612→    >
+   613→      {/* Risk level - horizontal scrollable or stacked on mobile */}
+   614→      <div>
+   615→        <Label className="text-sm font-medium mb-2 block">Mức rủi ro</Label>
+   616→        <div className="grid grid-cols-3 gap-2">
+   617→          {RISK_LEVELS.map((r) => (
+   618→            <button
+   619→              key={r.key}
+   620→              onClick={() => setRiskLevel(r.key)}
+   621→              className={cn(
+   622→                'min-h-[48px] rounded-lg border p-3 text-center transition-colors',
+   623→                riskLevel === r.key
+   624→                  ? cn('ring-2', r.color)
+   625→                  : 'border-border hover:bg-accent'
+   626→              )}
+   627→            >
+   628→              <span className="text-sm font-semibold">{r.label}</span>
+   629→            </button>
+   630→          ))}
+   631→        </div>
+   632→      </div>
+   633→
+   634→      {/* Action type - full width cards on mobile */}
+   635→      <div>
+   636→        <Label className="text-sm font-medium mb-2 block">Hành động</Label>
+   637→        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+   638→          {[
+   639→            { key: 'notify', label: 'Chỉ thông báo', icon: Zap, desc: 'Nhận thông báo khi kích hoạt' },
+   640→            { key: 'stoploss', label: 'Đề xuất cắt lỗ', icon: TrendingDown, desc: 'Gợi ý mức cắt lỗ phù hợp' },
+   641→          ].map((a) => (
+   642→            <button
+   643→              key={a.key}
+   644→              onClick={() => setActionType(a.key)}
+   645→              className={cn(
+   646→                'flex min-h-[64px] items-center gap-3 rounded-lg border p-3 text-left transition-colors',
+   647→                actionType === a.key
+   648→                  ? 'border-primary bg-primary/10 text-primary'
+   649→                  : 'border-border text-muted-foreground hover:bg-accent'
+   650→              )}
+   651→            >
+   652→              <a.icon className="h-5 w-5 shrink-0" />
+   653→              <div>
+   654→                <span className="text-xs font-semibold">{a.label}</span>
+   655→                <p className="text-[10px] text-muted-foreground mt-0.5">{a.desc}</p>
+   656→              </div>
+   657→            </button>
+   658→          ))}
+   659→        </div>
+   660→      </div>
+   661→
+   662→      {/* Summary - full width with proper text sizes */}
+   663→      <div>
+   664→        <Label className="text-sm font-medium mb-2 block">Tóm tắt</Label>
+   665→        <div className="rounded-lg border divide-y">
+   666→          {summary.map((s, i) => (
+   667→            <div key={i} className="flex items-start justify-between gap-2 px-4 py-2.5">
+   668→              <span className="text-xs text-muted-foreground shrink-0 sm:text-sm">{s.label}</span>
+   669→              <span className="text-xs font-medium text-right max-w-[60%] break-words sm:text-sm">{s.value}</span>
+   670→            </div>
+   671→          ))}
+   672→        </div>
+   673→      </div>
+   674→
+   675→      {/* Submit button - full width, min 48px height */}
+   676→      <Button
+   677→        className="w-full min-h-[48px] text-sm font-semibold"
+   678→        size="lg"
+   679→        disabled={submitting}
+   680→        onClick={onSubmit}
+   681→      >
+   682→        {submitting ? (
+   683→          <>
+   684→            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+   685→            Đang tạo...
+   686→          </>
+   687→        ) : (
+   688→          'Tạo cảnh báo'
+   689→        )}
+   690→      </Button>
+   691→    </motion.div>
+   692→  )
+   693→}
+   694→
+   695→// ---------- Main Builder Dialog ----------
+   696→export function AlertBuilderSheet() {
+   697→  const { activeOverlay, overlayData, closeOverlay, openOverlay } = useAppStore()
+   698→  const open = activeOverlay === 'alert-builder'
+   699→
+   700→  const [step, setStep] = useState(0)
+   701→  const [selectedAsset, setSelectedAsset] = useState<Asset | null>(null)
+   702→  const [conditionType, setConditionType] = useState('technical')
+   703→  const [indicator, setIndicator] = useState('RSI')
+   704→  const [indicatorConfig, setIndicatorConfig] = useState<Record<string, unknown>>({
+   705→    rsiOverbought: 70,
+   706→    rsiOversold: 30,
+   707→    macdDirection: 'bearish',
+   708→    maPeriod: 20,
+   709→    maDirection: 'below',
+   710→    atrMultiplier: 2,
+   711→    volumeIncrease: 200,
+   712→    targetPrice: 0,
+   713→    priceDirection: 'above',
+   714→    volatilityPercent: 5,
+   715→    timeframe: '1d',
+   716→  })
+   717→  const [riskLevel, setRiskLevel] = useState<AlertRiskLevel>('medium')
+   718→  const [actionType, setActionType] = useState('notify')
+   719→  const [submitting, setSubmitting] = useState(false)
+   720→  const [template, setTemplate] = useState<AlertTemplate | null>(null)
+   721→
+   722→  // Pre-fill from template
+   723→  useEffect(() => {
+   724→    if (open) {
+   725→      const tpl = overlayData?.template as AlertTemplate | undefined
+   726→      if (tpl) {
+   727→        setTemplate(tpl)
+   728→        if (tpl.indicatorType === 'RSI') setIndicator('RSI')
+   729→        else if (tpl.indicatorType === 'MACD') setIndicator('MACD')
+   730→        else if (tpl.indicatorType === 'MA') setIndicator('MA')
+   731→        else if (tpl.indicatorType === 'ATR') setIndicator('ATR')
+   732→        else if (tpl.indicatorType === 'volume') setIndicator('Volume')
+   733→        else if (tpl.indicatorType === 'price') setConditionType('price')
+   734→        else if (tpl.indicatorType === 'event') setConditionType('volatility')
+   735→        setRiskLevel(tpl.riskLevel)
+   736→      }
+   737→      // Pre-fill asset symbol
+   738→      const sym = overlayData?.assetSymbol as string | undefined
+   739→      if (sym) {
+   740→        fetch(`/api/assets?search=${sym}`)
+   741→          .then((r) => r.json())
+   742→          .then((json) => {
+   743→            const found = (json.data ?? []).find((a: Asset) => a.symbol === sym)
+   744→            if (found) setSelectedAsset(found)
+   745→          })
+   746→          .catch(() => {})
+   747→      }
+   748→    }
+   749→  }, [open, overlayData])
+   750→
+   751→  // Reset on close
+   752→  useEffect(() => {
+   753→    if (!open) {
+   754→      setStep(0)
+   755→      setSelectedAsset(null)
+   756→      setConditionType('technical')
+   757→      setIndicator('RSI')
+   758→      setIndicatorConfig({
+   759→        rsiOverbought: 70,
+   760→        rsiOversold: 30,
+   761→        macdDirection: 'bearish',
+   762→        maPeriod: 20,
+   763→        maDirection: 'below',
+   764→        atrMultiplier: 2,
+   765→        volumeIncrease: 200,
+   766→        targetPrice: 0,
+   767→        priceDirection: 'above',
+   768→        volatilityPercent: 5,
+   769→        timeframe: '1d',
+   770→      })
+   771→      setRiskLevel('medium')
+   772→      setActionType('notify')
+   773→      setSubmitting(false)
+   774→      setTemplate(null)
+   775→    }
+   776→  }, [open])
+   777→
+   778→  const canNext = useMemo(() => {
+   779→ if (step === 0) return !!selectedAsset
+   780→    return step === 1
+   781→      ? conditionType === 'price'
+   782→        ? !!indicatorConfig.targetPrice && (indicatorConfig.targetPrice as number) > 0
+   783→        : !!indicator
+   784→      : true
+   785→  }, [step, selectedAsset, conditionType, indicator, indicatorConfig])
+   786→
+   787→  const buildConditionDescription = useCallback((): { condition: string; desc: string; indType: string; value?: number; threshold?: number } => {
+   788→    if (!selectedAsset) return { condition: '', desc: '', indType: '' }
+   789→    const sym = selectedAsset.symbol
+   790→
+   791→    if (conditionType === 'technical') {
+   792→      switch (indicator) {
+   793→        case 'RSI':
+   794→          return {
+   795→            condition: `RSI > ${(indicatorConfig.rsiOverbought as number) ?? 70}`,
+   796→            desc: `Chỉ số RSI của ${sym} vượt mức ${(indicatorConfig.rsiOverbought as number) ?? 70}, cảnh báo vùng quá mua`,
+   797→            indType: 'RSI',
+   798→            value: 68,
+   799→            threshold: (indicatorConfig.rsiOverbought as number) ?? 70,
+   800→          }
+   801→        case 'MACD': {
+   802→          const dir = indicatorConfig.macdDirection as string
+   803→          return {
+   804→            condition: dir === 'bullish' ? 'MACD cắt lên tín hiệu' : 'MACD cắt xuống tín hiệu',
+   805→            desc: `Đường MACD của ${sym} ${dir === 'bullish' ? 'cắt lên' : 'cắt xuống'} đường tín hiệu`,
+   806→            indType: 'MACD',
+   807→          }
+   808→        }
+   809→        case 'MA': {
+   810→          const period = indicatorConfig.maPeriod as number
+   811→          const dir = indicatorConfig.maDirection as string
+   812→          return {
+   813→            condition: `Giá ${dir === 'above' ? '>' : '<'} MA${period}`,
+   814→            desc: `Giá ${sym} ${dir === 'above' ? 'trên' : 'dưới'} đường MA${period}`,
+   815→            indType: 'MA',
+   816→          }
+   817→        }
+   818→        case 'ATR': {
+   819→          const mult = indicatorConfig.atrMultiplier as number
+   820→          return {
+   821→            condition: `ATR > ${mult} * AvgATR`,
+   822→            desc: `ATR ${sym} dãn rộng vượt ${mult}x trung bình, dự báo biến động mạnh`,
+   823→            indType: 'ATR',
+   824→          }
+   825→        }
+   826→        case 'Volume': {
+   827→          const pct = indicatorConfig.volumeIncrease as number
+   828→          return {
+   829→            condition: `Volume > ${pct}% avg`,
+   830→            desc: `Khối lượng ${sym} tăng vượt ${pct}% so với trung bình`,
+   831→            indType: 'volume',
+   832→          }
+   833→        }
+   834→        default:
+   835→          return { condition: '', desc: '', indType: indicator }
+   836→      }
+   837→    }
+   838→
+   839→    if (conditionType === 'price') {
+   840→      const price = indicatorConfig.targetPrice as number
+   841→      const dir = indicatorConfig.priceDirection as string
+   842→      return {
+   843→        condition: `Giá ${dir === 'above' ? '>' : '<'} ${price.toLocaleString()}`,
+   844→        desc: `Giá ${sym} ${dir === 'above' ? 'vượt lên trên' : 'rơi xuống dưới'} ${price.toLocaleString()}`,
+   845→        indType: 'price',
+   846→        value: selectedAsset.price,
+   847→        threshold: price,
+   848→      }
+   849→    }
+   850→
+   851→    // volatility
+   852→    const pct = indicatorConfig.volatilityPercent as number
+   853→    const tf = indicatorConfig.timeframe as string
+   854→    const tfLabel: Record<string, string> = { '1h': '1 giờ', '4h': '4 giờ', '1d': '1 ngày', '1w': '1 tuần' }
+   855→    return {
+   856→      condition: `Biến động > ${pct}% trong ${tfLabel[tf] ?? tf}`,
+   857→      desc: `${sym} biến động hơn ${pct}% trong ${tfLabel[tf] ?? tf}`,
+   858→      indType: 'ATR',
+   859→    }
+   860→  }, [selectedAsset, conditionType, indicator, indicatorConfig])
+   861→
+   862→  const summary = useMemo(() => {
+   863→    if (!selectedAsset) return []
+   864→    const cond = buildConditionDescription()
+   865→    return [
+   866→      { label: 'Tài sản', value: `${selectedAsset.symbol} - ${selectedAsset.name}` },
+   867→      { label: 'Điều kiện', value: cond.condition },
+   868→      { label: 'Mô tả', value: cond.desc },
+   869→      { label: 'Rủi ro', value: riskLevel === 'high' ? 'Cao' : riskLevel === 'medium' ? 'Vừa' : 'Thấp' },
+   870→      { label: 'Hành động', value: actionType === 'notify' ? 'Chỉ thông báo' : 'Đề xuất cắt lỗ' },
+   871→    ]
+   872→  }, [selectedAsset, riskLevel, actionType, buildConditionDescription])
+   873→
+   874→  const handleSubmit = async () => {
+   875→    if (!selectedAsset) return
+   876→    setSubmitting(true)
+   877→    try {
+   878→      const cond = buildConditionDescription()
+   879→      const body = {
+   880→        assetSymbol: selectedAsset.symbol,
+   881→        assetName: selectedAsset.name,
+   882→        type: 'custom',
+   883→        condition: cond.condition,
+   884→        conditionDescription: cond.desc,
+   885→        riskLevel,
+   886→        indicatorType: cond.indType,
+   887→        value: cond.value,
+   888→        threshold: cond.threshold,
+   889→      }
+   890→      const res = await fetch('/api/alerts', {
+   891→        method: 'POST',
+   892→        headers: { 'Content-Type': 'application/json' },
+   893→        body: JSON.stringify(body),
+   894→      })
+   895→      if (res.ok) {
+   896→        const json = await res.json()
+   897→        closeOverlay()
+   898→        setTimeout(() => {
+   899→          openOverlay('alert-detail', { id: json.data.id })
+   900→        }, 300)
+   901→      }
+   902→    } catch {
+   903→      // silently fail
+   904→    } finally {
+   905→      setSubmitting(false)
+   906→    }
+   907→  }
+   908→
+   909→  return (
+   910→    <Dialog open={open} onOpenChange={(v) => !v && closeOverlay()}>
+   911→      {/* Full screen on mobile, centered dialog on desktop */}
+   912→      <DialogContent className="fixed inset-0 left-0 top-0 flex w-full max-w-full translate-x-0 translate-y-0 gap-0 rounded-none border-0 p-0 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:mx-auto sm:mt-0 sm:max-w-lg sm:h-auto sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:p-0">
+   913→        <DialogHeader className="px-4 pt-4 pb-0 sm:px-6 sm:pt-6">
+   914→          <div className="flex items-center justify-between">
+   915→            <div>
+   916→              <DialogTitle className="text-base sm:text-lg">Tạo cảnh báo mới</DialogTitle>
+   917→              <DialogDescription className="mt-1 text-xs sm:text-sm">
+   918→                {STEPS[step]}
+   919→              </DialogDescription>
+   920→            </div>
+   921→          </div>
+   922→          <div className="mt-3">
+   923→            <StepIndicator current={step} />
+   924→          </div>
+   925→        </DialogHeader>
+   926→
+   927→        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 sm:px-6">
+   928→          <AnimatePresence mode="wait">
+   929→            {step === 0 && (
+   930→              <StepAsset
+   931→                key="step-0"
+   932→                selected={selectedAsset}
+   933→                onSelect={setSelectedAsset}
+   934→              />
+   935→            )}
+   936→            {step === 1 && (
+   937→              <StepCondition
+   938→                key="step-1"
+   939→                conditionType={conditionType}
+   940→                setConditionType={setConditionType}
+   941→                indicator={indicator}
+   942→                setIndicator={setIndicator}
+   943→                indicatorConfig={indicatorConfig}
+   944→                setIndicatorConfig={setIndicatorConfig}
+   945→                template={template}
+   946→              />
+   947→            )}
+   948→            {step === 2 && (
+   949→              <StepSettings
+   950→                key="step-2"
+   951→                riskLevel={riskLevel}
+   952→                setRiskLevel={setRiskLevel}
+   953→                actionType={actionType}
+   954→                setActionType={setActionType}
+   955→                summary={summary}
+   956→                submitting={submitting}
+   957→                onSubmit={handleSubmit}
+   958→              />
+   959→            )}
+   960→          </AnimatePresence>
+   961→        </div>
+   962→
+   963→        {/* Navigation - proper size and spacing at bottom */}
+   964→        <div className="flex items-center justify-between border-t px-4 py-3 sm:px-6 sm:py-4">
+   965→          <Button
+   966→            variant="outline"
+   967→            onClick={() => setStep((s) => Math.max(0, s - 1))}
+   968→            disabled={step === 0}
+   969→            className="min-h-[44px] gap-1.5 text-sm sm:min-h-0"
+   970→          >
+   971→            <ArrowLeft className="h-4 w-4" />
+   972→            <span className="hidden sm:inline">Quay lại</span>
+   973→          </Button>
+   974→          {step < 2 && (
+   975→            <Button
+   976→              onClick={() => setStep((s) => Math.min(2, s + 1))}
+   977→              disabled={!canNext}
+   978→              className="min-h-[44px] gap-1.5 text-sm sm:min-h-0"
+   979→            >
+   980→              <span className="hidden sm:inline">Tiếp theo</span>
+   981→              <ArrowRight className="h-4 w-4" />
+   982→            </Button>
+   983→          )}
+   984→        </div>
+   985→      </DialogContent>
+   986→    </Dialog>
+   987→  )
+   988→}
+   989→

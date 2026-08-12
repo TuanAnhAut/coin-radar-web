@@ -137,5 +137,35 @@
 .custom-scrollbar::-webkit-scrollbar-thumb { background: oklch(0.7 0 0 / 20%); border-radius: 3px; }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: oklch(0.7 0 0 / 40%); }
 
+/* Hide scrollbar utility */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
 /* Safe area for mobile */
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* Scrollbar hidden utility */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* Number tabular figures for alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Prevent text selection on interactive elements */
+.no-select {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Smooth scroll */
+.scroll-smooth {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}

@@ -31,7 +31,7 @@ export function AppLayout() {
   const { currentView, sidebarCollapsed } = useAppStore()
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col bg-background overflow-hidden">
       <AppHeader />
 
       <div className="flex flex-1">

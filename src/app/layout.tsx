@@ -17,14 +17,15 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Coin Radar",
   description:
-    "Coin Radar - Nền tảng theo dõi thị trường tiền điện tử hàng đầu. Cảnh báo giá theo thời gian thực, phân tích chuyên sâu và quản lý danh mục đầu tư thông minh.",
+    "Coin Radar - Nền tảng theo dõi thị trường tài chính hàng đầu Việt Nam. Cảnh báo giá theo thời gian thực, phân tích chuyên sâu và tư vấn cảnh báo nâng cao.",
   keywords: [
     "crypto",
     "bitcoin",
     "tiền điện tử",
     "thị trường",
     "cảnh báo giá",
-    "danh mục đầu tư",
+    "chứng khoán",
+    "vàng",
   ],
   icons: {
     icon: "/logo.svg",

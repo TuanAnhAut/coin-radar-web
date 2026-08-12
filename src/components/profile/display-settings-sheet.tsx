@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Sun, Moon, Monitor, CandlestickChart, Home, BarChart3, BellRing } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
@@ -63,7 +63,7 @@ const fontSizePreview: Record<FontSizeValue, string> = {
 
 export function DisplaySettingsSheet() {
   const { activeOverlay, closeOverlay } = useAppStore()
-  const { setTheme: setNextTheme, resolvedTheme } = useTheme()
+  const { setTheme: setNextTheme } = useTheme()
 
   const [fontSize, setFontSize] = useState<FontSizeValue>('medium')
   const [currency, setCurrency] = useState<CurrencyValue>('vnd')

@@ -318,3 +318,86 @@ Stage Summary:
 - Touch targets min 44px, proper font sizing, horizontal scroll for filter chips
 - Verified via Agent Browser on 3 viewports: all tabs and overlays working
 - Zero lint errors, zero runtime errors
+
+---
+Task ID: css-fix
+Agent: main
+Task: Fix CSS issues in all Profile, Chat, and Shared components
+
+Work Log:
+- Audited all 10 files in profile/, chat/, and shared/ for CSS issues
+- **display-settings-sheet.tsx**: Removed unused `useEffect` import and unused `resolvedTheme` variable from `useTheme()` destructuring
+- **notification-center.tsx**: Major refactor — extracted `NotificationListItems` component to eliminate duplicate JSX. Previously the mobile Drawer and desktop Sheet each had inline copies of the full notification list rendering (loading skeletons, error state, notification items with motion animations, empty state). Now both share a single `NotificationListItems` function component. Also removed unused `headerContent` variable.
+- **globals.css**: Added `.scrollbar-hide` utility class (used by expert-directory.tsx but was previously undefined — missing WebKit, Firefox, and IE scrollbar hiding rules)
+- Verified all other 7 files (profile-dashboard, portfolio-sheet, notification-settings-sheet, security-settings-sheet, subscription-sheet, expert-directory, expert-profile-sheet, global-search) had no CSS issues:
+  - No hardcoded oklch colors in JSX className (only in CSS vars and Recharts inline styles)
+  - No invalid Tailwind classes (first:/last:, h-4.5)
+  - All profile sub-sheets consistently use bottom Sheet with h-[85vh]
+  - Proper overflow handling with overflow-x-auto on tables, custom-scrollbar on scroll areas
+  - Responsive grid breakpoints correct (2→4 cols for stats, 1→3 for plan cards)
+  - All touch targets ≥44px, min-heights consistent
+
+Lint check: `bun run lint` passed with zero errors.
+
+Stage Summary:
+- 3 files modified: display-settings-sheet.tsx, notification-center.tsx, globals.css
+- 7 files audited with no issues found
+- Notification center duplicate JSX eliminated via shared component extraction
+- scrollbar-hide CSS utility properly defined
+- Unused imports/variables cleaned up
+- Zero lint errors
+
+---
+Task ID: css-hooks-metadata-fix
+Agent: main
+Task: Fix ALL foundational CSS issues, hooks issues, and metadata issues
+
+Work Log:
+- **Deleted** `src/hooks/use-is-mobile.ts` (duplicate hook, breakpoint 640, only used by notification-center.tsx)
+- **Rewrote** `src/hooks/use-mobile.ts` with SSR-safe lazy initializer (returns false on server, accepts configurable breakpoint defaulting to 768)
+- **Kept** `src/lib/hooks.ts` as-is (used by majority of market/alert components, breakpoint 768)
+- **Fixed** `src/components/shared/notification-center.tsx`: import changed from `@/hooks/use-is-mobile` to `@/lib/hooks`
+- **Fixed** `src/components/home/quick-actions.tsx`: replaced invalid `h-4.5 w-4.5` with `h-[18px] w-[18px]`
+- **Fixed** `src/components/layout/bottom-nav.tsx`: replaced hardcoded `bg-zinc-50 dark:bg-zinc-950` with `bg-background/95 backdrop-blur-md`
+- **Fixed** `src/app/layout.tsx`: updated description to "tư vấn cảnh báo nâng cao" (removed "quản lý danh mục đầu tư thông minh"); updated keywords to replace "danh mục đầu tư" with "chứng khoán" and "vàng"
+- **Fixed** `src/components/home/news-feed.tsx`: removed invalid Tailwind v4 `first:rounded-t-xl` and `last:rounded-b-xl` classes (parent div already has `rounded-xl overflow-hidden`)
+- **Added** utility classes to `src/app/globals.css`: `.scrollbar-none`, `.tabular-nums`, `.no-select`, `.scroll-smooth`
+- **Fixed** `src/components/layout/sidebar-nav.tsx`: changed `top-12 xl:top-14` to `top-[3.5rem]` to match the sm:h-14 header (56px = 3.5rem)
+- **Fixed** `src/components/layout/app-layout.tsx`: added `overflow-hidden` to the outermost wrapper div to prevent horizontal overflow
+- **Ran** `bun run lint` — zero errors
+
+Stage Summary:
+- 9 files modified/created/deleted
+- 3 useIsMobile hooks consolidated to 2 (deleted duplicate, rewrote the remaining to be SSR-safe)
+- All hardcoded theme colors replaced with CSS variable-based classes
+- Invalid Tailwind v4 classes removed (h-4.5, first:, last:)
+- Metadata aligned with monitoring + alert consulting positioning
+- Sidebar top position consistent with header height
+- Horizontal overflow prevention added to app layout
+- Zero lint errors
+
+---
+Task ID: css-refactor
+Agent: main + 3 sub-agents
+Task: Refactor ALL CSS across pages and modals to fix errors
+
+Work Log:
+- Fixed 3 duplicate useIsMobile hooks → consolidated to 2 (lib/hooks.ts at 768px, hooks/use-mobile.ts at 768px)
+- Deleted src/hooks/use-is-mobile.ts (640px breakpoint, unused)
+- Fixed notification-center.tsx import from deleted hook → @/lib/hooks
+- Fixed invalid Tailwind class h-4.5 → h-[18px] in quick-actions.tsx
+- Replaced hardcoded bg-zinc-50 dark:bg-zinc-950 → bg-background/95 backdrop-blur-md in bottom-nav.tsx
+- Updated metadata: removed "danh mục đầu tư", added "chứng khoán", "vàng"
+- Removed invalid first:/last: pseudo-classes in news-feed.tsx
+- Added CSS utilities: .scrollbar-none, .tabular-nums, .no-select, .scroll-smooth, .scrollbar-hide
+- Fixed sidebar top position: top-12 xl:top-14 → top-[3.5rem]
+- Added overflow-hidden to app-layout outer wrapper
+- Refactored notification-center.tsx: extracted shared NotificationListItems to eliminate duplicate JSX (~80 lines)
+- Removed unused imports in display-settings-sheet.tsx
+- Fixed module-not-found error (notification-center importing deleted hook)
+
+Stage Summary:
+- 12 files modified across layout, home, shared, hooks, globals
+- All 29 custom components verified: zero runtime errors, zero lint errors
+- Tested on 3 viewports (375px mobile, 768px tablet, 1280px desktop)
+- All tabs, overlays, drawers, sheets working correctly

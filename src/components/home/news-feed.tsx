@@ -87,10 +87,7 @@ export function NewsFeed() {
               'cursor-pointer transition-colors hover:bg-accent/50 active:bg-accent/70',
               'px-3 sm:px-4 py-3 sm:py-4',
               // Min-height for touch target
-              'min-h-[56px] sm:min-h-[64px]',
-              // Rounded corners for first/last items
-              index === 0 && 'first:rounded-t-xl',
-              index === news.length - 1 && 'last:rounded-b-xl'
+              'min-h-[56px] sm:min-h-[64px]'
             )}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

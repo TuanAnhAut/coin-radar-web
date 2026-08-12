@@ -77,7 +77,7 @@ export function QuickActions() {
                 'flex items-center justify-center rounded-lg bg-primary/10',
                 'h-9 w-9 sm:h-10 sm:w-10'
               )}>
-                <Icon className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary" />
+                <Icon className="h-[18px] w-[18px] sm:h-5 sm:w-5 text-primary" />
               </div>
               <span className="text-xs font-semibold leading-tight text-center">
                 {action.label}
