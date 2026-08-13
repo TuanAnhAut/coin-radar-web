@@ -282,7 +282,7 @@ export function RiskScannerSheet() {
             <DrawerTitle className="text-base">{title}</DrawerTitle>
             <DrawerDescription className="text-xs">{desc}</DrawerDescription>
           </DrawerHeader>
-          <div className="overflow-y-auto flex-1 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
+          <div className="overflow-y-auto flex-1 min-h-0 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
             {renderContent()}
           </div>
         </DrawerContent>

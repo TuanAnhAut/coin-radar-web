@@ -530,7 +530,7 @@ export function AlertDetailSheet() {
             <DrawerTitle className="text-base line-clamp-1">{title}</DrawerTitle>
             <DrawerDescription className="text-xs line-clamp-1">{desc}</DrawerDescription>
           </DrawerHeader>
-          <div className="overflow-y-auto flex-1 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
+          <div className="overflow-y-auto flex-1 min-h-0 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
             {renderContent()}
           </div>
         </DrawerContent>
@@ -566,7 +566,7 @@ export function AlertDetailSheet() {
               </div>
             </div>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto custom-scrollbar mt-4 px-6 pb-6">
+          <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar mt-4 px-6 pb-24">
             {renderContent()}
           </div>
         </SheetContent>

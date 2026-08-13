@@ -281,7 +281,7 @@ export function AlertTemplatesSheet() {
             <DrawerTitle className="text-base">{title}</DrawerTitle>
             <DrawerDescription className="text-xs">{desc}</DrawerDescription>
           </DrawerHeader>
-          <div className="overflow-y-auto flex-1 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
+          <div className="overflow-y-auto flex-1 min-h-0 px-4 pb-8 custom-scrollbar max-h-[calc(92vh-8rem)]">
             {renderContent()}
           </div>
         </DrawerContent>
@@ -294,7 +294,7 @@ export function AlertTemplatesSheet() {
             <SheetTitle>{title}</SheetTitle>
             <SheetDescription>{desc}</SheetDescription>
           </SheetHeader>
-          <div className="mt-4 flex-1 flex flex-col gap-4 overflow-y-auto custom-scrollbar pb-24">
+          <div className="mt-4 flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto custom-scrollbar pb-24">
             {renderContent()}
           </div>
         </SheetContent>

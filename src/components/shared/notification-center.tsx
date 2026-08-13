@@ -229,7 +229,7 @@ export function NotificationCenter() {
                   </Button>
                 </div>
               </DrawerHeader>
-              <ScrollArea className="flex-1 h-[calc(85vh-8rem)]">
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
                 <div className="p-2">
                   <NotificationListItems
                     notifications={notifications}
@@ -238,7 +238,7 @@ export function NotificationCenter() {
                     onNotificationClick={handleNotificationClick}
                   />
                 </div>
-              </ScrollArea>
+              </div>
             </DrawerContent>
           </Drawer>
         )}

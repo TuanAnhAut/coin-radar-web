@@ -165,7 +165,7 @@ function ExpertProfileContent({ expert, onClose, onSendMessage }: { expert: Expe
   ]
 
   return (
-    <div className="custom-scrollbar overflow-y-auto pb-24 -mx-6 px-6 space-y-6">
+    <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto pb-24 -mx-6 px-6 space-y-6">
       {/* Profile header - avatar large centered on mobile */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}

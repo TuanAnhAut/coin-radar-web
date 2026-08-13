@@ -391,7 +391,7 @@ export function AlertHub() {
             ) : filteredAlerts.length === 0 ? (
               <EmptyState status={status} />
             ) : (
-              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto custom-scrollbar pr-1">
+              <div className="space-y-3 max-h-[calc(100vh-20rem)] overflow-y-auto custom-scrollbar pr-1 pb-20">
                 <AnimatePresence mode="popLayout">
                   {filteredAlerts.map((alert) => (
                     <AlertCard

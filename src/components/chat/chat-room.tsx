@@ -410,7 +410,7 @@ export function ChatRoom() {
       {/* Messages Area */}
       <div
         ref={scrollContainerRef}
-        className="flex-1 overflow-y-auto custom-scrollbar px-3 sm:px-4 py-3 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-3 sm:px-4 py-3 space-y-3"
       >
         {loading ? (
           <ChatSkeleton />

@@ -935,7 +935,7 @@ export function AlertBuilderSheet() {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 sm:px-6">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-4 pt-4 pb-6 sm:px-6">
           <AnimatePresence mode="wait">
             {step === 0 && (
               <StepAsset

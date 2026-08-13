@@ -103,7 +103,7 @@ export function SubscriptionSheet() {
           <SheetTitle>Gói dịch vụ</SheetTitle>
         </SheetHeader>
 
-        <div className="custom-scrollbar overflow-y-auto pb-24 -mx-6 px-6 space-y-5 mt-4">
+        <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto pb-24 -mx-6 px-6 space-y-5 mt-4">
           {/* Current plan badge */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}

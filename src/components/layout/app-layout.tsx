@@ -41,7 +41,7 @@ export function AppLayout() {
         {/* Main content area */}
         <main
           className={cn(
-            'flex-1 transition-all duration-300 ease-in-out',
+            'flex-1 min-w-0 transition-all duration-300 ease-in-out',
             // Account for sidebar on xl+ (1280px+)
             'xl:ml-64',
             sidebarCollapsed && 'xl:ml-[68px]'
@@ -56,8 +56,7 @@ export function AppLayout() {
               'min-h-[calc(100vh-3rem)] sm:min-h-[calc(100vh-3.5rem)]'
             )}
           >
-            {/* Max-width container for content readability on large screens */}
-            <div className="mx-auto w-full max-w-screen-2xl">
+            <div className="mx-auto w-full">
               {renderView(currentView)}
             </div>
           </div>

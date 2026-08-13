@@ -459,3 +459,30 @@ Stage Summary:
 - Mobile and desktop responsive verified
 - No console errors
 - Lint passes
+---
+Task ID: 10
+Agent: main
+Task: Fix all layout overflow and hidden content issues
+
+Work Log:
+- Conducted comprehensive audit using agent browser on mobile (375x812) and desktop (1280x800)
+- Found and fixed CRITICAL issue: `<main>` flex item missing `min-w-0` causing 545px content overflow on mobile
+- Found and fixed HIGH issue: Notification center drawer ScrollArea not scrolling properly on mobile (replaced with overflow-y-auto + min-h-0)
+- Found and fixed MEDIUM: AlertHub list missing pb-20 causing FAB to overlap last alert card
+- Removed unnecessary `max-w-screen-2xl` from layout container
+- Added `min-h-0` to ALL 17 flex-1 scroll containers inside flex-col parents across:
+  - 6 Drawer scroll containers (asset-detail, risk-scanner, watchlist, news-detail, alert-templates, alert-detail mobile drawers)
+  - 6 bottom-Sheet scroll containers (expert-profile, portfolio, notification-settings, display-settings, security-settings, subscription)
+  - AlertTemplatesSheet desktop Sheet scroll container
+  - AlertDetailSheet desktop Sheet scroll container
+  - AlertBuilderSheet Dialog scroll container
+  - ChatRoom messages area
+- Fixed AlertDetailSheet desktop bottom padding: pb-6 → pb-24 (close button clearance)
+- Fixed AlertBuilderSheet bottom padding: py-4 → pt-4 pb-6 (proper spacing for footer)
+
+Stage Summary:
+- Fixed 1 critical, 1 high, 16+ medium layout issues
+- All 5 views verified on both mobile (375px) and desktop (1280px) — scrollWidth matches viewport on all
+- No console errors on any view
+- No horizontal overflow on any view
+- All Sheet/Drawer scroll containers now have min-h-0 for proper flex shrinking

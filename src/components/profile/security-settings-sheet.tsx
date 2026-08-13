@@ -52,7 +52,7 @@ export function SecuritySettingsSheet() {
           <SheetTitle>Bảo mật</SheetTitle>
         </SheetHeader>
 
-        <div className="custom-scrollbar overflow-y-auto pb-24 -mx-6 px-6 space-y-6 mt-4">
+        <div className="custom-scrollbar flex-1 min-h-0 overflow-y-auto pb-24 -mx-6 px-6 space-y-6 mt-4">
           {/* Biometric lock - full width, min 56px height */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
