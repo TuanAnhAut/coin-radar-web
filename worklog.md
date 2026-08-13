@@ -589,3 +589,57 @@ Stage Summary:
 - chart-detail-view.tsx: minor fixes (ErrorBoundary, imports)
 - Key improvements: gradient fills, rounded lines, extension trends, Fibonacci zones, adaptive formatting, proper DPR rendering
 - No console errors, no lint errors, no dev server errors
+---
+Task ID: 2
+Agent: Main Agent
+Task: Implement Smart App Banner for mobile/tablet redirect
+
+Work Log:
+- Created `src/components/layout/smart-app-banner.tsx` with 3 components:
+  - `SmartAppBanner` — iOS/Android-style smart banner at top
+  - `AppDownloadDialog` — Modal dialog with download options
+  - `MobileOnboardingPrompt` — Bottom sheet for first-time mobile visitors
+- Device detection using `useSyncExternalStore` (SSR-safe):
+  - Detects iOS (iPhone/iPad), Android, tablet vs phone
+  - Checks PWA/standalone mode (skip banner if already installed as PWA)
+  - Caches client snapshot to avoid infinite re-render loops
+- Smart Banner features:
+  - Animated slide-down with framer-motion spring animation
+  - App icon + name + platform badge (iOS/Android)
+  - "Mở app" button — tries deep link with 1.5s timeout fallback to store
+  - "Tải" button — opens download dialog
+  - "Đóng" dismiss button with 7-day localStorage persistence
+  - Banner height reservation prevents content jump on show/hide
+- Download Dialog features:
+  - Gradient hero section with app icon
+  - 3 feature highlights (push notifications, performance, native UI)
+  - "Mở trong ứng dụng" — deep link with store fallback
+  - "Tải từ App Store/Google Play" — platform-specific store button
+  - iOS/Android direct store buttons (cross-platform option)
+  - "Tiếp tục sử dụng trên trình duyệt" — dismiss option
+- Mobile Onboarding Prompt (bottom sheet):
+  - First-visit detection (sessionStorage)
+  - Appears after 3 seconds delay
+  - 4 benefit highlights (push alerts, charts, gestures, biometric security)
+  - "Mở ứng dụng" with deep link fallback
+  - "Tải ứng dụng miễn phí" direct to store
+  - "Tiếp tục dùng phiên bản web" dismiss
+- Integrated into `app-layout.tsx`:
+  - SmartAppBanner placed between root div and AppHeader
+  - MobileOnboardingPrompt placed as global overlay
+- All lint checks pass clean
+- Verified via agent-browser:
+  - Desktop: No banner shown (correct)
+  - iPhone 14 emulation: Banner + bottom sheet + download dialog all work
+  - Pixel 7 (Android): Banner shows "Google Play" instead of "App Store"
+  - Dismiss persistence works (localStorage)
+  - No console errors, no dev server errors
+
+Stage Summary:
+- Created: `src/components/layout/smart-app-banner.tsx` (~560 lines)
+- Modified: `src/components/layout/app-layout.tsx` (added imports + 2 components)
+- Deep link scheme: `coinradar://open`
+- Store links: Placeholder URLs (replace when app published)
+- Banner dismiss: 7 days via localStorage
+- Bottom sheet prompt: Per session via sessionStorage
+- PWA/standalone detection: Skip all prompts when running as installed app

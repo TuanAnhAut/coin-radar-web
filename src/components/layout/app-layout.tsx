@@ -3,6 +3,7 @@
 import { AppHeader } from '@/components/layout/app-header'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { SidebarNav } from '@/components/layout/sidebar-nav'
+import { SmartAppBanner, MobileOnboardingPrompt } from '@/components/layout/smart-app-banner'
 import { HomeDashboard } from '@/components/home/home-dashboard'
 import { GlobalSearch } from '@/components/shared/global-search'
 import { NotificationCenter } from '@/components/shared/notification-center'
@@ -33,6 +34,9 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-hidden">
+      {/* Smart App Banner (mobile/tablet only) */}
+      <SmartAppBanner />
+
       <AppHeader />
 
       <div className="flex flex-1">
@@ -90,6 +94,9 @@ export function AppLayout() {
       <AlertBuilderSheet />
       <AlertDetailSheet />
       <AlertFab />
+
+      {/* Mobile onboarding prompt (first visit) */}
+      <MobileOnboardingPrompt />
     </div>
   )
 }
