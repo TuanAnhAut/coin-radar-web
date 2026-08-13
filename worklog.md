@@ -688,3 +688,35 @@ Stage Summary:
 - Solution: `min-h-0` + `absolute inset-0` scroll container + scroll-to-top on view change
 - Verified: scrollHeight > clientHeight on content-heavy views, header stays fixed at top=0, bottom nav clearance works, scroll resets on view switch
 - No console errors, lint passes clean
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Create full authentication screens
+
+Work Log:
+- Updated Zustand store with auth state: isAuthenticated, authScreen (login/register/forgot-password/verify-otp), user, pendingVerifyEmail, login(), logout(), setAuthScreen(), setPendingVerify()
+- Added localStorage session persistence (cr_auth_session key) for auth state
+- Updated Prisma schema: added passwordHash, phone, avatarUrl, plan, twoFactorEnabled, twoFactorSecret, otpCode, otpExpiry, isVerified, lastLoginAt fields to User model; removed Post model
+- Ran db:push to sync database
+- Created 5 auth screen components in src/components/auth/:
+  - login-screen.tsx: Full login with email/password, Google login, forgot password link, decorative gradient background
+  - register-screen.tsx: Full registration with 5 fields, password strength indicator, terms checkbox
+  - forgot-password-screen.tsx: Email input to request OTP reset
+  - verify-otp-screen.tsx: 6-digit OTP input with auto-advance, paste support, 60s countdown timer, context-aware back navigation
+  - auth-gate.tsx: AnimatePresence wrapper that renders correct screen based on authScreen state
+- Created 4 API endpoints in src/app/api/auth/:
+  - login/route.ts: Email/password auth with 2FA gate, lastLoginAt update
+  - register/route.ts: User creation with OTP generation (123456 demo)
+  - forgot-password/route.ts: OTP reset for existing users
+  - verify-otp/route.ts: OTP verification for register/forgot-password/login flows
+- Updated page.tsx: Conditional render AuthGate vs AppLayout based on isAuthenticated
+- Added logout button with AlertDialog confirmation to profile-dashboard.tsx
+
+Stage Summary:
+- Full auth flow verified: Register → OTP → Login → App → Logout → Login (all work)
+- Forgot Password flow verified: Login → Forgot → OTP → Back to Login (all work)
+- All API calls return 200, database queries correct
+- Mobile responsive, dark theme, Vietnamese UI text throughout
+- Lint passes clean, no runtime errors
+- Demo OTP code: 123456

@@ -25,7 +25,31 @@ export type OverlayType =
   | 'change-password'
   | null
 
+export type AuthScreen = 'login' | 'register' | 'forgot-password' | 'verify-otp'
+
+export interface UserData {
+  id: string
+  email: string
+  fullName: string
+  phone: string | null
+  avatarUrl: string | null
+  plan: 'free' | 'pro' | 'enterprise'
+  twoFactorEnabled: boolean
+  createdAt: string
+}
+
 interface AppState {
+  // Auth
+  isAuthenticated: boolean
+  authScreen: AuthScreen
+  user: UserData | null
+  pendingVerifyEmail: string | null
+  pendingVerifyType: 'register' | 'forgot-password' | 'login'
+  setAuthScreen: (screen: AuthScreen) => void
+  login: (user: UserData) => void
+  logout: () => void
+  setPendingVerify: (email: string, type: 'register' | 'forgot-password' | 'login') => void
+
   // Navigation
   currentView: ViewType
   setCurrentView: (view: ViewType) => void
@@ -65,7 +89,63 @@ interface AppState {
   closeChartDetail: () => void
 }
 
+// Check localStorage for persisted session on init
+function getInitialAuthState(): {
+  isAuthenticated: boolean
+  user: UserData | null
+} {
+  if (typeof window === 'undefined') return { isAuthenticated: false, user: null }
+  try {
+    const stored = localStorage.getItem('cr_auth_session')
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      if (parsed && parsed.user) {
+        return { isAuthenticated: true, user: parsed.user }
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return { isAuthenticated: false, user: null }
+}
+
+const initial = getInitialAuthState()
+
 export const useAppStore = create<AppState>((set) => ({
+  // Auth
+  isAuthenticated: initial.isAuthenticated,
+  authScreen: 'login',
+  user: initial.user,
+  pendingVerifyEmail: null,
+  pendingVerifyType: 'register',
+  setAuthScreen: (screen) => set({ authScreen: screen }),
+  login: (user) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('cr_auth_session', JSON.stringify({ user }))
+    }
+    set({ isAuthenticated: true, user, authScreen: 'login' })
+  },
+  logout: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cr_auth_session')
+    }
+    set({
+      isAuthenticated: false,
+      user: null,
+      currentView: 'home',
+      activeOverlay: null,
+      overlayData: null,
+      chartDetailSymbol: null,
+      chartDetailAssetName: null,
+      chartDetailAssetType: null,
+    })
+  },
+  setPendingVerify: (email, type) => set({
+    pendingVerifyEmail: email,
+    pendingVerifyType: type,
+    authScreen: 'verify-otp',
+  }),
+
   // Navigation
   currentView: 'home',
   setCurrentView: (view) => set({ currentView: view }),

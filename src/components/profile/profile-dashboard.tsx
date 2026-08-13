@@ -14,11 +14,13 @@ import {
   KeyRound,
   Lock,
   Smartphone,
+  LogOut,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useAppStore, type OverlayType } from '@/store/app-store'
@@ -122,7 +124,7 @@ const itemVariants = {
 }
 
 export function ProfileDashboard() {
-  const { openOverlay } = useAppStore()
+  const { openOverlay, logout } = useAppStore()
 
   return (
     <motion.div
@@ -278,6 +280,43 @@ export function ProfileDashboard() {
             ))}
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Logout */}
+      <motion.div variants={itemVariants}>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 min-h-[60px] hover:bg-destructive/5 transition-colors text-left rounded-xl border border-destructive/20 bg-destructive/5">
+              <div className="h-10 w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+                <LogOut className="h-5 w-5 text-destructive" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-destructive">Đăng xuất</p>
+                <p className="text-xs text-muted-foreground truncate">Đăng xuất khỏi tài khoản</p>
+              </div>
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận đăng xuất</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn có chắc chắn muốn đăng xuất? Các cảnh báo và cài đặt sẽ được giữ nguyên trên thiết bị này.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Hủy bỏ</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  logout()
+                  toast.success('Đã đăng xuất thành công')
+                }}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Đăng xuất
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </motion.div>
     </motion.div>
   )
