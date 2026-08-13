@@ -25,10 +25,8 @@ export function HomeDashboard() {
   return (
     <motion.div
       className={cn(
-        // Wider spacing on larger screens
         'space-y-5 sm:space-y-6 md:space-y-8',
-        // Constrain max-width for readability
-        'max-w-4xl mx-auto'
+        'max-w-6xl mx-auto'
       )}
       variants={containerVariants}
       initial="hidden"
@@ -46,11 +44,12 @@ export function HomeDashboard() {
         <MarketCards />
       </motion.div>
 
-      <motion.div variants={sectionVariants}>
+      {/* 2-column layout: Alerts + News side by side */}
+      <motion.div
+        variants={sectionVariants}
+        className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6"
+      >
         <RecentAlerts />
-      </motion.div>
-
-      <motion.div variants={sectionVariants}>
         <NewsFeed />
       </motion.div>
     </motion.div>

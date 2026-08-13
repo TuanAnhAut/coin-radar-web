@@ -29,18 +29,29 @@ function getCategoryVariant(category: NewsCategory): 'default' | 'secondary' | '
   }
 }
 
+function getCategoryColor(category: NewsCategory): string {
+  switch (category) {
+    case 'crypto': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+    case 'gold': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    case 'stock': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+    case 'macro': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+    case 'micro': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+    default: return ''
+  }
+}
+
 export function NewsFeed() {
   const [news, setNews] = useState<NewsArticle[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { openOverlay } = useAppStore()
+  const { openOverlay, setCurrentView } = useAppStore()
 
   useEffect(() => {
     async function fetchNews() {
       try {
         const res = await fetch('/api/news')
         const json = await res.json()
-        setNews((json.data as NewsArticle[]).slice(0, 4))
+        setNews((json.data as NewsArticle[]).slice(0, 5))
       } catch {
         setError('Không thể tải tin tức')
       } finally {
@@ -76,17 +87,24 @@ export function NewsFeed() {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-sm sm:text-base font-semibold">Tin tức</h2>
+      {/* Section header + "View all" button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm sm:text-base font-semibold">Tin tức</h2>
+        <button
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[32px] px-2 rounded-md hover:bg-accent/50"
+          onClick={() => setCurrentView('news')}
+        >
+          Xem tất cả
+        </button>
+      </div>
 
       <div className="rounded-xl border bg-card divide-y overflow-hidden">
         {news.map((article, index) => (
           <motion.div
             key={article.id}
             className={cn(
-              // Full card as tap target, with proper padding
               'cursor-pointer transition-colors hover:bg-accent/50 active:bg-accent/70',
               'px-3 sm:px-4 py-3 sm:py-4',
-              // Min-height for touch target
               'min-h-[56px] sm:min-h-[64px]'
             )}
             initial={{ opacity: 0, y: 8 }}
@@ -94,30 +112,40 @@ export function NewsFeed() {
             transition={{ duration: 0.3, delay: index * 0.05 }}
             onClick={() => openOverlay('news-detail', { id: article.id })}
           >
-            {/* Title - limited to 2 lines */}
-            <h3 className="text-sm font-medium leading-snug line-clamp-2 mb-1 sm:mb-1.5">
-              {article.title}
-            </h3>
+            {/* Importance indicator + Title */}
+            <div className="flex items-start gap-2">
+              {article.importance === 'important' && (
+                <span className="mt-1 shrink-0 h-2 w-2 rounded-full bg-destructive" />
+              )}
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-medium leading-snug line-clamp-2 mb-1">
+                  {article.title}
+                </h3>
 
-            {/* Summary - limited to 2 lines, hidden on very small screens */}
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-2 hidden sm:block">
-              {article.summary}
-            </p>
+                {/* Summary - hidden on very small screens */}
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-2 hidden sm:block">
+                  {article.summary}
+                </p>
 
-            {/* Meta row: category badge + source + time */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <Badge variant={getCategoryVariant(article.category)} className="text-[10px] px-1.5 py-0 shrink-0">
-                {getCategoryLabel(article.category)}
-              </Badge>
-              <span className="text-[10px] sm:text-xs text-muted-foreground truncate">
-                {article.source}
-              </span>
-              <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
-                · {formatDistanceToNow(new Date(article.publishedAt), {
-                  addSuffix: true,
-                  locale: vi,
-                })}
-              </span>
+                {/* Meta row: category badge + source + time */}
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                  <Badge
+                    variant="outline"
+                    className={cn('text-[10px] px-1.5 py-0 shrink-0', getCategoryColor(article.category))}
+                  >
+                    {getCategoryLabel(article.category)}
+                  </Badge>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground truncate">
+                    {article.source}
+                  </span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground flex-shrink-0">
+                    · {formatDistanceToNow(new Date(article.publishedAt), {
+                      addSuffix: true,
+                      locale: vi,
+                    })}
+                  </span>
+                </div>
+              </div>
             </div>
           </motion.div>
         ))}

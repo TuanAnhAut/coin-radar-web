@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 
-export type ViewType = 'home' | 'alerts' | 'market' | 'chat' | 'profile'
+export type ViewType = 'home' | 'news' | 'alerts' | 'market' | 'chat' | 'profile'
 
 export type OverlayType =
   | 'search'

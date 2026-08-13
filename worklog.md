@@ -720,3 +720,24 @@ Stage Summary:
 - Mobile responsive, dark theme, Vietnamese UI text throughout
 - Lint passes clean, no runtime errors
 - Demo OTP code: 123456
+---
+Task ID: 1
+Agent: main
+Task: Redesign home page 2-column layout + create News page with tabs
+
+Work Log:
+- Updated Zustand store: added 'news' to ViewType union
+- Updated NewsArticle type: added `importance` (important/normal/minor) and `bookmarked` fields
+- Rewrote home-dashboard.tsx: changed news+alerts to 2-column grid layout (grid-cols-1 md:grid-cols-2), max-width widened to max-w-6xl
+- Updated news-feed.tsx: added "Xem tất cả" link, importance dot indicator, improved category badge colors
+- Created news-page.tsx: full News page with 4 tabs (Tin chung, Quan trọng, Quan tâm, Danh mục), search bar, sort dropdown, featured article card, compact list cards, bookmark toggle, category filter bar
+- Updated news API (route.ts): expanded from 10 to 16 articles, added importance field, added ?importance= and ?bookmarked= query params
+- Updated sidebar-nav.tsx: added Newspaper icon, "Tin tức" as 2nd nav item (6 items total)
+- Updated bottom-nav.tsx: added "Tin tức" as 2nd nav item (5 items total, compacted for 5-tab mobile), removed Chat AI from bottom to keep 5 tabs
+- Updated app-layout.tsx: added NewsPage import, added 'news' case to renderView()
+
+Stage Summary:
+- Home page now shows Cảnh báo and Tin tức side-by-side on desktop (md+), stacked on mobile
+- News page created with full tab system: Tin chung (all), Quan trọng (important-filtered), Quan tâm (bookmarked), Danh mục (category-filtered)
+- Navigation updated: 6 items in sidebar (desktop), 5 in bottom nav (mobile) with "Tin tức" prominent
+- All verified via agent-browser: 2-column layout, tab switching, bookmarking, category filtering, no console errors

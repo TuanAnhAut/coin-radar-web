@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import {
   Radar,
   LayoutDashboard,
+  Newspaper,
   Bell,
   TrendingUp,
   MessageCircle,
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button'
 
 const navItems: { view: ViewType; label: string; icon: typeof LayoutDashboard }[] = [
   { view: 'home', label: 'Tổng quan', icon: LayoutDashboard },
+  { view: 'news', label: 'Tin tức', icon: Newspaper },
   { view: 'alerts', label: 'Cảnh báo', icon: Bell },
   { view: 'market', label: 'Thị trường', icon: TrendingUp },
   { view: 'chat', label: 'Chat AI', icon: MessageCircle },

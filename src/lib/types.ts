@@ -105,6 +105,8 @@ export interface AlertTemplate {
 
 export type NewsCategory = 'macro' | 'micro' | 'stock' | 'crypto' | 'gold';
 
+export type NewsImportance = 'important' | 'normal' | 'minor';
+
 export interface NewsArticle {
   id: string;
   title: string;
@@ -115,6 +117,8 @@ export interface NewsArticle {
   category: NewsCategory;
   tags: string[];
   imageUrl: string;
+  importance: NewsImportance;
+  bookmarked?: boolean;
 }
 
 // ==================== Expert Types ====================

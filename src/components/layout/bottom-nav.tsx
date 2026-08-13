@@ -1,14 +1,14 @@
 'use client'
 
-import { LayoutDashboard, Bell, TrendingUp, MessageCircle, User } from 'lucide-react'
+import { LayoutDashboard, Newspaper, Bell, TrendingUp, MessageCircle, User } from 'lucide-react'
 import { useAppStore, type ViewType } from '@/store/app-store'
 import { cn } from '@/lib/utils'
 
 const navItems: { view: ViewType; label: string; icon: typeof LayoutDashboard; showBadge?: boolean }[] = [
   { view: 'home', label: 'Tổng quan', icon: LayoutDashboard },
+  { view: 'news', label: 'Tin tức', icon: Newspaper },
   { view: 'alerts', label: 'Cảnh báo', icon: Bell, showBadge: true },
   { view: 'market', label: 'Thị trường', icon: TrendingUp },
-  { view: 'chat', label: 'Chat', icon: MessageCircle },
   { view: 'profile', label: 'Cá nhân', icon: User },
 ]
 
@@ -25,7 +25,7 @@ export function BottomNav() {
         'pb-[env(safe-area-inset-bottom,0px)]'
       )}
     >
-      <div className="flex items-center justify-around px-1 sm:px-2 h-[60px] sm:h-16">
+      <div className="flex items-center justify-around px-0.5 sm:px-1 h-[56px] sm:h-[60px]">
         {navItems.map((item) => {
           const isActive = currentView === item.view
           const Icon = item.icon
@@ -36,8 +36,8 @@ export function BottomNav() {
               onClick={() => setCurrentView(item.view)}
               className={cn(
                 'relative flex flex-col items-center justify-center rounded-lg transition-colors',
-                // Minimum touch target: 44px height, with extra padding for comfortable tap
-                'min-h-[44px] min-w-[44px] px-2 sm:px-3 py-1.5',
+                // Compact touch target for 6 items
+                'min-h-[40px] min-w-[40px] px-1 sm:px-2 py-1',
                 // Active indicator
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 isActive
@@ -48,10 +48,10 @@ export function BottomNav() {
               aria-current={isActive ? 'page' : undefined}
             >
               {/* Icon container with badge */}
-              <div className="relative flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7">
+              <div className="relative flex items-center justify-center w-5 h-5 sm:w-6 sm:h-6">
                 <Icon
                   className={cn(
-                    'h-5 w-5 sm:h-[22px] sm:w-[22px] transition-all duration-200',
+                    'h-[18px] w-[18px] sm:h-5 sm:w-5 transition-all duration-200',
                     isActive && 'scale-110'
                   )}
                   fill={isActive ? 'currentColor' : 'none'}
@@ -61,7 +61,7 @@ export function BottomNav() {
                 {item.showBadge && unreadCount > 0 && (
                   <span className={cn(
                     'absolute -top-1.5 -right-2 flex items-center justify-center rounded-full bg-destructive text-white leading-none',
-                    unreadCount > 9 ? 'h-4 min-w-4 px-1 text-[9px]' : 'h-4 w-4 text-[10px]',
+                    unreadCount > 9 ? 'h-3.5 min-w-3.5 px-0.5 text-[8px] sm:h-4 sm:min-w-4 sm:px-1 sm:text-[10px]' : 'h-3.5 w-3.5 sm:h-4 sm:w-4 text-[8px] sm:text-[10px]',
                     'font-bold'
                   )}>
                     {unreadCount > 99 ? '99+' : unreadCount}
@@ -71,7 +71,7 @@ export function BottomNav() {
               {/* Label */}
               <span className={cn(
                 'mt-0.5 leading-none transition-all duration-200',
-                isActive ? 'text-[10px] sm:text-[11px] font-semibold' : 'text-[10px] sm:text-[11px] font-medium'
+                isActive ? 'text-[9px] sm:text-[10px] font-semibold' : 'text-[9px] sm:text-[10px] font-medium'
               )}>
                 {item.label}
               </span>

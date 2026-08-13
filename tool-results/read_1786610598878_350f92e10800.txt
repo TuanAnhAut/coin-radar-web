@@ -401,4 +401,323 @@
    401→- All 29 custom components verified: zero runtime errors, zero lint errors
    402→- Tested on 3 viewports (375px mobile, 768px tablet, 1280px desktop)
    403→- All tabs, overlays, drawers, sheets working correctly
-   404→
+   404→---
+   405→Task ID: 8
+   406→Agent: main
+   407→Task: Refactor all pages and modal CSS to avoid errors
+   408→
+   409→Work Log:
+   410→- Fixed critical HTML nesting violation in AlertDetailSheet: `<p>` (SheetDescription) containing `<div>` (Skeleton), and `<h2>` (SheetTitle) containing `<div>` (Skeleton). Moved Skeleton outside of Title/Description components, used text placeholder for loading state instead.
+   411→- Fixed DialogContent base component: changed `grid` to `flex flex-col` layout to support `flex-1` children properly across all Dialog consumers.
+   412→- Fixed AlertBuilderSheet Dialog CSS: added `flex-col h-dvh` for proper mobile fullscreen layout, added `showCloseButton={false}` with custom X button in header, added `shrink-0` to header/footer, added `safe-bottom` to navigation bar, added `sm:max-h-[85vh]` for desktop, removed shadow on mobile fullscreen.
+   413→- Fixed invalid nested `<button>` inside `<button>` in WatchlistSheet: changed outer button to `<div role="button" tabIndex={0}>` with proper keyboard handler.
+   414→- Added `shrink-0` to NotificationCenter SheetHeader to prevent header compression.
+   415→- Added `shrink-0` to AlertTemplatesSheet SheetHeader and `pb-24` to scrollable content for close button clearance.
+   416→- Fixed `scrollbar-hide` → `scrollbar-none` consistency in ExpertDirectory.
+   417→- Ran comprehensive audit of all 26 component files - confirmed only the above issues existed.
+   418→
+   419→Stage Summary:
+   420→- 6 CSS/HTML fixes applied across 6 files
+   421→- All fixes verified with lint (pass) and agent-browser (no console errors on mobile + desktop)
+   422→- AlertDetailSheet: no more `<p> cannot contain <div>` hydration error
+   423→- AlertBuilderSheet: proper fullscreen on mobile, centered dialog on desktop with correct flex layout
+   424→- All overlay z-indexes properly stacked (z-40 for nav, z-50 for overlays)
+   425→---
+   426→Task ID: 9
+   427→Agent: main
+   428→Task: Build complete chat with expert feature
+   429→
+   430→Work Log:
+   431→- Updated types.ts with ChatMessage and ChatConversation interfaces
+   432→- Updated Zustand store (app-store.ts) with activeChatExpertId state to toggle between ExpertDirectory and ChatRoom views
+   433→- Created API route `/api/chat/[expertId]/messages` with:
+   434→  - GET: returns chat history (with welcome message for new conversations)
+   435→  - POST: sends user message, generates AI expert response using z-ai-web-dev-sdk LLM
+   436→  - Each expert has unique system prompt based on their specialty and bio
+   437→  - Conversation history maintained in-memory per expert (max 20 messages context)
+   438→  - Input validation (max 500 chars, non-empty)
+   439→  - Vietnamese language responses, professional but friendly tone
+   440→  - Fallback responses if AI fails
+   441→- Created ChatRoom component (src/components/chat/chat-room.tsx):
+   442→  - Full-height chat layout with sticky header, scrollable messages, and fixed input
+   443→  - Expert header with avatar, name, online status, rating
+   444→  - Message bubbles (user vs expert vs system/welcome)
+   445→  - Typing indicator with animated dots
+   446→  - Auto-resizing textarea input
+   447→  - Quick suggestion chips for new conversations
+   448→  - Auto-scroll to newest messages
+   449→  - Optimistic UI (shows user message immediately)
+   450→  - Back button returns to expert directory
+   451→  - Keyboard submit with Enter (Shift+Enter for newline)
+   452→  - Responsive: works on both mobile and desktop
+   453→- Updated ExpertDirectory: "Nhắn tin" button now opens ChatRoom via setActiveChatExpertId
+   454→- Updated ExpertProfileSheet: "Nhắn tin" button closes profile sheet, switches to chat view, opens ChatRoom
+   455→
+   456→Stage Summary:
+   457→- Full chat feature built and verified with agent browser
+   458→- AI responses are contextual and in Vietnamese
+   459→- Mobile and desktop responsive verified
+   460→- No console errors
+   461→- Lint passes
+   462→---
+   463→Task ID: 10
+   464→Agent: main
+   465→Task: Fix all layout overflow and hidden content issues
+   466→
+   467→Work Log:
+   468→- Conducted comprehensive audit using agent browser on mobile (375x812) and desktop (1280x800)
+   469→- Found and fixed CRITICAL issue: `<main>` flex item missing `min-w-0` causing 545px content overflow on mobile
+   470→- Found and fixed HIGH issue: Notification center drawer ScrollArea not scrolling properly on mobile (replaced with overflow-y-auto + min-h-0)
+   471→- Found and fixed MEDIUM: AlertHub list missing pb-20 causing FAB to overlap last alert card
+   472→- Removed unnecessary `max-w-screen-2xl` from layout container
+   473→- Added `min-h-0` to ALL 17 flex-1 scroll containers inside flex-col parents across:
+   474→  - 6 Drawer scroll containers (asset-detail, risk-scanner, watchlist, news-detail, alert-templates, alert-detail mobile drawers)
+   475→  - 6 bottom-Sheet scroll containers (expert-profile, portfolio, notification-settings, display-settings, security-settings, subscription)
+   476→  - AlertTemplatesSheet desktop Sheet scroll container
+   477→  - AlertDetailSheet desktop Sheet scroll container
+   478→  - AlertBuilderSheet Dialog scroll container
+   479→  - ChatRoom messages area
+   480→- Fixed AlertDetailSheet desktop bottom padding: pb-6 → pb-24 (close button clearance)
+   481→- Fixed AlertBuilderSheet bottom padding: py-4 → pt-4 pb-6 (proper spacing for footer)
+   482→
+   483→Stage Summary:
+   484→- Fixed 1 critical, 1 high, 16+ medium layout issues
+   485→- All 5 views verified on both mobile (375px) and desktop (1280px) — scrollWidth matches viewport on all
+   486→- No console errors on any view
+   487→- No horizontal overflow on any view
+   488→- All Sheet/Drawer scroll containers now have min-h-0 for proper flex shrinking
+   489→
+   490→---
+   491→Task ID: chart-detail-view
+   492→Agent: main
+   493→Task: Create TradingView-like chart detail page with drawing tools, indicators, and alert integration
+   494→
+   495→Work Log:
+   496→- Updated app-store.ts: Added chartDetailSymbol, chartDetailAssetName, chartDetailAssetType state + openChartDetail/closeChartDetail actions
+   497→- Created src/lib/chart-types.ts: DrawingTool, ChartDrawing, ActiveDrawing, IndicatorConfig, ChartLayout, ChartViewport types
+   498→- Created src/lib/chart-utils.ts: SMA, EMA, RSI, MACD, Bollinger Bands calculations; viewport/layout computation; price↔Y coordinate conversions; Fibonacci levels; alert-from-drawing conversion
+   499→- Created src/components/chart/chart-canvas.tsx: Full HTML5 Canvas candlestick chart engine with:
+   500→  - OHLC candlestick rendering with green/red colors
+   501→  - Volume bars at bottom of chart
+   502→  - Grid lines (price + time)
+   503→  - Moving average overlays (MA20/50/100)
+   504→  - Bollinger Bands overlay
+   505→  - RSI sub-indicator panel with overbought/oversold zones
+   506→  - MACD sub-indicator panel with histogram, line, signal
+   507→  - Crosshair cursor with price/time labels
+   508→  - Drawing tools: horizontal line, trend line, Fibonacci retracement, rectangle
+   509→  - Mouse wheel zoom, drag-to-pan, touch support
+   510→  - Context menu support for alert creation from drawings
+   511→  - Double-click to delete drawings
+   512→  - DPR-aware rendering for sharp display on retina screens
+   513→- Created src/components/chart/chart-detail-view.tsx: Full page chart view with:
+   514→  - Header with asset info, price, OHLC stats, watchlist/alert buttons
+   515→  - Crosshair OHLC info bar showing current candle data
+   516→  - Drawing tools toolbar (Crosshair, Đường ngang, Đường xu hướng, Fibonacci, Vùng giá, Ghi chú)
+   517→  - Time period selector (1D, 1W, 1M, 3M, 1Y, ALL)
+   518→  - Collapsible indicators panel (MA20, MA50, MA100, BB, RSI, MACD, Volume)
+   519→  - Context menu for setting alerts from chart price/drawings
+   520→  - Drawing list with alert and delete buttons per drawing
+   521→  - Bottom info bar with RSI/MA quick stats
+   522→  - Responsive layout (mobile + desktop)
+   523→- Updated src/components/layout/app-layout.tsx: Added chartDetailSymbol check to render ChartDetailView
+   524→- Updated src/components/market/asset-detail-sheet.tsx: Added "Xem biểu đồ" button in action section
+   525→- Updated src/components/market/market-overview.tsx: Added chart icon buttons in both table rows and mobile cards
+   526→- Created src/app/api/assets/[symbol]/chart/route.ts: API route for detailed OHLC data generation
+   527→- Fixed gitBranch → GitBranch PascalCase icon import
+   528→
+   529→Stage Summary:
+   530→- Full TradingView-like chart page working with candlestick rendering
+   531→- 6 drawing tools available (crosshair, horizontal line, trendline, fibonacci, rectangle, text)
+   532→- 7 technical indicators toggleable (MA20, MA50, MA100, BB, RSI, MACD, Volume)
+   533→- Alert creation from drawings and chart price via context menu
+   534→- "Xem biểu đồ" button accessible from: market table rows, mobile cards, and asset detail sheet
+   535→- All flows verified: market → chart button → chart view → back → market
+   536→- Canvas renders properly on both light and dark themes
+   537→- No console errors after gitBranch fix
+   538→---
+   539→Task ID: 1
+   540→Agent: Main Agent
+   541→Task: Optimize chart for professional TradingView-quality rendering
+   542→
+   543→Work Log:
+   544→- Read and analyzed all 3 chart files: chart-utils.ts, chart-canvas.tsx, chart-detail-view.tsx
+   545→- Rewrote chart-utils.ts with improved calculations:
+   546→  - Fixed Bollinger Bands to use sample standard deviation (TradingView standard)
+   547→  - Fixed MACD signal calculation to compute on valid MACD values only
+   548→  - Added snap-to-price function for drawing tools
+   549→  - Added formatPriceLabel with adaptive decimal precision
+   550→  - Added formatChartDate with smart formatting based on visible range
+   551→  - Added Fibonacci zone colors and line colors constants
+   552→  - Added hexToRgba and colorWithAlpha utility functions
+   553→  - Improved niceStep algorithm for better grid scaling
+   554→  - Improved viewport padding (asymmetric: 2% bottom, 4% top)
+   555→  - Added Fibonacci label constants
+   556→- Rewrote chart-canvas.tsx with professional rendering:
+   557→  - Separated light/dark theme into typed ThemeColors interface
+   558→  - Canvas rendering with { alpha: false } for performance
+   559→  - imageSmoothingEnabled + imageSmoothingQuality for crisp rendering
+   560→  - Candlestick rendering: gradient fills, rounded corners, subtle border, last candle glow
+   561→  - Volume bars: gradient fills with rounded tops
+   562→  - MA lines: lineJoin='round', lineCap='round' for smooth rendering
+   563→  - Bollinger Bands: proper fill between upper/lower bands
+   564→  - RSI panel: gradient fills for OB/OS zones, fill below RSI line, colored 70/30 reference lines
+   565→  - MACD panel: gradient histogram bars, colored by strength, signal line with dash pattern
+   566→  - Grid: dynamic opacity based on distance from center, proper sub-pixel alignment
+   567→  - Crosshair: dotted style (2,2), professional price tag with rounded rect and pointer triangle
+   568→  - Info panel: panel with shadow, rounded corners, proper OHLCV formatting
+   569→  - Price axis: smart formatting with formatPriceLabel, dimmed text
+   570→  - Time axis: smart date formatting via formatChartDate
+   571→  - Last price marker: gradient tag with triangle pointer
+   572→  - Drawing tools improvements:
+   573→    - Horizontal line: price snap to nice numbers, dashed style, price tag with triangle pointer
+   574→    - Trendline: extension 30% beyond endpoints, 3-layer glow endpoint dots
+   575→    - Fibonacci: colored zones between levels, per-level line colors, labels with background
+   576→    - Rectangle: proper colorWithAlpha fill, rounded corners, corner handles, price labels
+   577→  - Error boundary: proper React class component
+   578→  - Fixed missing imports (ChartCanvas, ErrorBoundary)
+   579→- Fixed chart-detail-view.tsx:
+   580→  - Added ChartCanvas import
+   581→  - Replaced broken ErrorBoundary with proper React class component
+   582→  - Added Component import from React
+   583→- All lint checks pass clean
+   584→- Verified via agent-browser: FPT stock chart, BTC crypto chart both render without errors
+   585→
+   586→Stage Summary:
+   587→- chart-utils.ts: 350 lines → 300 lines (cleaner, better organized)
+   588→- chart-canvas.tsx: 998 lines → 1060 lines (more professional rendering)
+   589→- chart-detail-view.tsx: minor fixes (ErrorBoundary, imports)
+   590→- Key improvements: gradient fills, rounded lines, extension trends, Fibonacci zones, adaptive formatting, proper DPR rendering
+   591→- No console errors, no lint errors, no dev server errors
+   592→---
+   593→Task ID: 2
+   594→Agent: Main Agent
+   595→Task: Implement Smart App Banner for mobile/tablet redirect
+   596→
+   597→Work Log:
+   598→- Created `src/components/layout/smart-app-banner.tsx` with 3 components:
+   599→  - `SmartAppBanner` — iOS/Android-style smart banner at top
+   600→  - `AppDownloadDialog` — Modal dialog with download options
+   601→  - `MobileOnboardingPrompt` — Bottom sheet for first-time mobile visitors
+   602→- Device detection using `useSyncExternalStore` (SSR-safe):
+   603→  - Detects iOS (iPhone/iPad), Android, tablet vs phone
+   604→  - Checks PWA/standalone mode (skip banner if already installed as PWA)
+   605→  - Caches client snapshot to avoid infinite re-render loops
+   606→- Smart Banner features:
+   607→  - Animated slide-down with framer-motion spring animation
+   608→  - App icon + name + platform badge (iOS/Android)
+   609→  - "Mở app" button — tries deep link with 1.5s timeout fallback to store
+   610→  - "Tải" button — opens download dialog
+   611→  - "Đóng" dismiss button with 7-day localStorage persistence
+   612→  - Banner height reservation prevents content jump on show/hide
+   613→- Download Dialog features:
+   614→  - Gradient hero section with app icon
+   615→  - 3 feature highlights (push notifications, performance, native UI)
+   616→  - "Mở trong ứng dụng" — deep link with store fallback
+   617→  - "Tải từ App Store/Google Play" — platform-specific store button
+   618→  - iOS/Android direct store buttons (cross-platform option)
+   619→  - "Tiếp tục sử dụng trên trình duyệt" — dismiss option
+   620→- Mobile Onboarding Prompt (bottom sheet):
+   621→  - First-visit detection (sessionStorage)
+   622→  - Appears after 3 seconds delay
+   623→  - 4 benefit highlights (push alerts, charts, gestures, biometric security)
+   624→  - "Mở ứng dụng" with deep link fallback
+   625→  - "Tải ứng dụng miễn phí" direct to store
+   626→  - "Tiếp tục dùng phiên bản web" dismiss
+   627→- Integrated into `app-layout.tsx`:
+   628→  - SmartAppBanner placed between root div and AppHeader
+   629→  - MobileOnboardingPrompt placed as global overlay
+   630→- All lint checks pass clean
+   631→- Verified via agent-browser:
+   632→  - Desktop: No banner shown (correct)
+   633→  - iPhone 14 emulation: Banner + bottom sheet + download dialog all work
+   634→  - Pixel 7 (Android): Banner shows "Google Play" instead of "App Store"
+   635→  - Dismiss persistence works (localStorage)
+   636→  - No console errors, no dev server errors
+   637→
+   638→Stage Summary:
+   639→- Created: `src/components/layout/smart-app-banner.tsx` (~560 lines)
+   640→- Modified: `src/components/layout/app-layout.tsx` (added imports + 2 components)
+   641→- Deep link scheme: `coinradar://open`
+   642→- Store links: Placeholder URLs (replace when app published)
+   643→- Banner dismiss: 7 days via localStorage
+   644→- Bottom sheet prompt: Per session via sessionStorage
+   645→- PWA/standalone detection: Skip all prompts when running as installed app
+   646→---
+   647→Task ID: 1
+   648→Agent: Main Agent
+   649→Task: Fix header to fixed position, add profile editing, 2FA, password change features
+   650→
+   651→Work Log:
+   652→- Fixed AppHeader: changed from `sticky top-0 z-40` to `fixed top-0 left-0 right-0 z-50`
+   653→- Updated AppLayout: changed root from `min-h-screen` to `h-screen`, added `min-h-0` to main, `h-full` to scroll container, added `pt-[3.25rem] sm:pt-[3.75rem]` for fixed header clearance
+   654→- Updated SidebarNav: added responsive `sm:top-14` for fixed header offset
+   655→- Added 3 new OverlayType values to store: 'edit-profile', 'two-factor', 'change-password'
+   656→- Created EditProfileSheet: avatar with camera button, form fields (name, email, phone, DOB, address), account info, save button with loading state
+   657→- Created TwoFactorSheet: full 2FA setup flow with QR code visual, OTP input, verification, recovery codes, enable/disable state machine
+   658→- Created ChangePasswordSheet: password requirements with live validation, strength indicator, show/hide toggle, confirm validation
+   659→- Updated ProfileDashboard: split menu into "Tài khoản cá nhân" (edit profile, 2FA, change password) and "Cài đặt ứng dụng" sections, wired edit button to openOverlay
+   660→- Updated AppLayout: imported and mounted EditProfileSheet, TwoFactorSheet, ChangePasswordSheet
+   661→- Created 3 API endpoints: /api/user/profile, /api/user/password, /api/user/two-factor
+   662→- All lint checks pass
+   663→
+   664→Stage Summary:
+   665→- Header is now fixed at top, stays visible while scrolling
+   666→- Profile section now has 3 new functional sheets for account management
+   667→- All forms have proper validation, loading states, and Vietnamese UI text
+   668→- API endpoints provide backend support for all new features
+   669→
+   670→---
+   671→Task ID: 2
+   672→Agent: Main Agent
+   673→Task: Fix scroll bugs across the entire page
+   674→
+   675→Work Log:
+   676→- Diagnosed root cause: `<div className="flex flex-1">` was missing `min-h-0`, causing it to expand beyond viewport (1775px vs 577px viewport). Root's `overflow-hidden` clipped content without scrolling.
+   677→- The inner scroll container had `h-full` but resolved to 1775px (matching expanded parent), making `scrollHeight === clientHeight` — no overflow, no scroll.
+   678→- Fixed by adding `min-h-0` to the flex-1 wrapper div to allow proper flex shrinking
+   679→- Changed scroll container from `h-full` to `absolute inset-0` for guaranteed fill of parent regardless of flex height resolution
+   680→- Added `relative` to `<main>` as positioning context for the absolute scroll container
+   681→- Added `useEffect` with `scrollRef` to reset scroll to top on view change (`currentView`, `chartDetailSymbol`)
+   682→- Changed root from `h-screen` to `h-screen supports-[height:100dvh]:h-dvh` for proper mobile viewport handling with fallback
+   683→- Verified on desktop (1440x900), mobile (375x812), and medium viewports
+   684→- All views tested: home (scrollable), market, alerts, chat, profile, chart detail — all scroll correctly
+   685→
+   686→Stage Summary:
+   687→- Root cause: missing `min-h-0` on flex child in column flex container prevented proper shrinking
+   688→- Solution: `min-h-0` + `absolute inset-0` scroll container + scroll-to-top on view change
+   689→- Verified: scrollHeight > clientHeight on content-heavy views, header stays fixed at top=0, bottom nav clearance works, scroll resets on view switch
+   690→- No console errors, lint passes clean
+   691→
+   692→---
+   693→Task ID: 3
+   694→Agent: Main Agent
+   695→Task: Create full authentication screens
+   696→
+   697→Work Log:
+   698→- Updated Zustand store with auth state: isAuthenticated, authScreen (login/register/forgot-password/verify-otp), user, pendingVerifyEmail, login(), logout(), setAuthScreen(), setPendingVerify()
+   699→- Added localStorage session persistence (cr_auth_session key) for auth state
+   700→- Updated Prisma schema: added passwordHash, phone, avatarUrl, plan, twoFactorEnabled, twoFactorSecret, otpCode, otpExpiry, isVerified, lastLoginAt fields to User model; removed Post model
+   701→- Ran db:push to sync database
+   702→- Created 5 auth screen components in src/components/auth/:
+   703→  - login-screen.tsx: Full login with email/password, Google login, forgot password link, decorative gradient background
+   704→  - register-screen.tsx: Full registration with 5 fields, password strength indicator, terms checkbox
+   705→  - forgot-password-screen.tsx: Email input to request OTP reset
+   706→  - verify-otp-screen.tsx: 6-digit OTP input with auto-advance, paste support, 60s countdown timer, context-aware back navigation
+   707→  - auth-gate.tsx: AnimatePresence wrapper that renders correct screen based on authScreen state
+   708→- Created 4 API endpoints in src/app/api/auth/:
+   709→  - login/route.ts: Email/password auth with 2FA gate, lastLoginAt update
+   710→  - register/route.ts: User creation with OTP generation (123456 demo)
+   711→  - forgot-password/route.ts: OTP reset for existing users
+   712→  - verify-otp/route.ts: OTP verification for register/forgot-password/login flows
+   713→- Updated page.tsx: Conditional render AuthGate vs AppLayout based on isAuthenticated
+   714→- Added logout button with AlertDialog confirmation to profile-dashboard.tsx
+   715→
+   716→Stage Summary:
+   717→- Full auth flow verified: Register → OTP → Login → App → Logout → Login (all work)
+   718→- Forgot Password flow verified: Login → Forgot → OTP → Back to Login (all work)
+   719→- All API calls return 200, database queries correct
+   720→- Mobile responsive, dark theme, Vietnamese UI text throughout
+   721→- Lint passes clean, no runtime errors
+   722→- Demo OTP code: 123456
+   723→

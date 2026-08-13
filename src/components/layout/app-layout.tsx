@@ -25,6 +25,7 @@ import { RiskScannerSheet } from '@/components/market/risk-scanner-sheet'
 import { WatchlistSheet } from '@/components/market/watchlist-sheet'
 import { NewsDetailSheet } from '@/components/market/news-detail-sheet'
 import { AlertHub } from '@/components/alerts/alert-hub'
+import { NewsPage } from '@/components/news/news-page'
 import { AlertFab } from '@/components/alerts/alert-fab'
 import { AlertTemplatesSheet } from '@/components/alerts/alert-templates-sheet'
 import { AlertBuilderSheet } from '@/components/alerts/alert-builder-sheet'
@@ -127,6 +128,8 @@ function renderView(view: string) {
   switch (view) {
     case 'home':
       return <HomeDashboard />
+    case 'news':
+      return <NewsPage />
     case 'alerts':
       return <AlertHub />
     case 'market':
