@@ -10,6 +10,10 @@ import {
   Edit2,
   ShieldCheck,
   Eye,
+  UserCircle,
+  KeyRound,
+  Lock,
+  Smartphone,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -47,6 +51,27 @@ const statCards = [
     value: '8',
     color: 'text-violet-500',
     bg: 'bg-violet-100 dark:bg-violet-900/30',
+  },
+]
+
+const personalItems = [
+  {
+    key: 'edit-profile',
+    icon: UserCircle,
+    label: 'Chỉnh sửa hồ sơ',
+    description: 'Tên, email, số điện thoại, ảnh đại diện',
+  },
+  {
+    key: 'two-factor',
+    icon: Smartphone,
+    label: 'Xác thực hai yếu tố (2FA)',
+    description: 'Bảo mật tài khoản bằng mã OTP',
+  },
+  {
+    key: 'change-password',
+    icon: KeyRound,
+    label: 'Đổi mật khẩu',
+    description: 'Thay đổi mật khẩu đăng nhập',
   },
 ]
 
@@ -134,7 +159,7 @@ export function ProfileDashboard() {
                 variant="outline"
                 size="sm"
                 className="gap-1.5 shrink-0"
-                onClick={() => toast.info('Tính năng sắp ra mắt')}
+                onClick={() => openOverlay('edit-profile')}
               >
                 <Edit2 className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Chỉnh sửa</span>
@@ -165,8 +190,56 @@ export function ProfileDashboard() {
         ))}
       </motion.div>
 
+      {/* Personal Account Section */}
+      <motion.div variants={itemVariants}>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+          Tài khoản cá nhân
+        </h3>
+        <Card className="border-0 shadow-sm overflow-hidden">
+          <CardContent className="p-0">
+            {personalItems.map((item, index) => (
+              <div key={item.key}>
+                <button
+                  className="w-full flex items-center gap-3 sm:gap-4 p-3 sm:p-4 min-h-[60px] hover:bg-muted/50 transition-colors text-left"
+                  onClick={() => openOverlay(item.key as OverlayType)}
+                >
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
+                    <item.icon className="h-5 w-5 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">{item.label}</p>
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.description}
+                    </p>
+                  </div>
+                  <svg
+                    className="h-4 w-4 text-muted-foreground shrink-0"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                </button>
+                {index < personalItems.length - 1 && (
+                  <Separator className="ml-[3.75rem] sm:ml-[4.5rem]" />
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </motion.div>
+
       {/* Settings list */}
       <motion.div variants={itemVariants}>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+          Cài đặt ứng dụng
+        </h3>
         <Card className="border-0 shadow-sm overflow-hidden">
           <CardContent className="p-0">
             {settingsItems.map((item, index) => (

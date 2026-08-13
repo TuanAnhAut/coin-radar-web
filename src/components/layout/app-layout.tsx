@@ -15,6 +15,9 @@ import { NotificationSettingsSheet } from '@/components/profile/notification-set
 import { DisplaySettingsSheet } from '@/components/profile/display-settings-sheet'
 import { SecuritySettingsSheet } from '@/components/profile/security-settings-sheet'
 import { SubscriptionSheet } from '@/components/profile/subscription-sheet'
+import { EditProfileSheet } from '@/components/profile/edit-profile-sheet'
+import { TwoFactorSheet } from '@/components/profile/two-factor-sheet'
+import { ChangePasswordSheet } from '@/components/profile/change-password-sheet'
 import { MarketOverview } from '@/components/market/market-overview'
 import { AssetDetailSheet } from '@/components/market/asset-detail-sheet'
 import { RiskScannerSheet } from '@/components/market/risk-scanner-sheet'
@@ -33,7 +36,7 @@ export function AppLayout() {
   const { currentView, sidebarCollapsed, chartDetailSymbol } = useAppStore()
 
   return (
-    <div className="min-h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Smart App Banner (mobile/tablet only) */}
       <SmartAppBanner />
 
@@ -46,7 +49,7 @@ export function AppLayout() {
         {/* Main content area */}
         <main
           className={cn(
-            'flex-1 min-w-0 transition-all duration-300 ease-in-out',
+            'flex-1 min-w-0 min-h-0 transition-all duration-300 ease-in-out',
             // Account for sidebar on xl+ (1280px+)
             'xl:ml-64',
             sidebarCollapsed && 'xl:ml-[68px]'
@@ -54,11 +57,12 @@ export function AppLayout() {
         >
           <div
             className={cn(
-              'custom-scrollbar overflow-y-auto',
+              'custom-scrollbar overflow-y-auto h-full',
               // Bottom nav clearance: only when sidebar is NOT visible (below xl)
               'pb-[80px] xl:pb-6',
-              'pt-4 sm:pt-6 px-3 sm:px-4 md:px-6',
-              'min-h-[calc(100vh-3rem)] sm:min-h-[calc(100vh-3.5rem)]'
+              // Fixed header clearance
+              'pt-[3.25rem] sm:pt-[3.75rem]',
+              'px-3 sm:px-4 md:px-6'
             )}
           >
             <div className="mx-auto w-full">
@@ -88,6 +92,9 @@ export function AppLayout() {
       <DisplaySettingsSheet />
       <SecuritySettingsSheet />
       <SubscriptionSheet />
+      <EditProfileSheet />
+      <TwoFactorSheet />
+      <ChangePasswordSheet />
 
       {/* Alert overlays */}
       <AlertTemplatesSheet />

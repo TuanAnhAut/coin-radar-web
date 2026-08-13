@@ -23,7 +23,7 @@ export function AppHeader() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-xl'
+        'fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl'
       )}
     >
       <div className="flex h-12 sm:h-14 items-center justify-between px-3 sm:px-4 md:px-6">

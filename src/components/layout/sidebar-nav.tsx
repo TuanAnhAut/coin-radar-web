@@ -50,7 +50,7 @@ export function SidebarNav() {
     <aside
       className={cn(
         // Hidden below xl, shown at xl+ (1280px+)
-        'hidden xl:flex flex-col fixed left-0 top-[3.5rem] bottom-0 z-30',
+        'hidden xl:flex flex-col fixed left-0 top-[3.5rem] sm:top-14 bottom-0 z-30',
         'border-r bg-sidebar text-sidebar-foreground',
         // Smooth transition for collapse/expand
         'transition-all duration-300 ease-in-out',

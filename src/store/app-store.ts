@@ -20,6 +20,9 @@ export type OverlayType =
   | 'display-settings'
   | 'security-settings'
   | 'subscription'
+  | 'edit-profile'
+  | 'two-factor'
+  | 'change-password'
   | null
 
 interface AppState {

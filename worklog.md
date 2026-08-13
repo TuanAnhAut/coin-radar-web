@@ -643,3 +643,26 @@ Stage Summary:
 - Banner dismiss: 7 days via localStorage
 - Bottom sheet prompt: Per session via sessionStorage
 - PWA/standalone detection: Skip all prompts when running as installed app
+---
+Task ID: 1
+Agent: Main Agent
+Task: Fix header to fixed position, add profile editing, 2FA, password change features
+
+Work Log:
+- Fixed AppHeader: changed from `sticky top-0 z-40` to `fixed top-0 left-0 right-0 z-50`
+- Updated AppLayout: changed root from `min-h-screen` to `h-screen`, added `min-h-0` to main, `h-full` to scroll container, added `pt-[3.25rem] sm:pt-[3.75rem]` for fixed header clearance
+- Updated SidebarNav: added responsive `sm:top-14` for fixed header offset
+- Added 3 new OverlayType values to store: 'edit-profile', 'two-factor', 'change-password'
+- Created EditProfileSheet: avatar with camera button, form fields (name, email, phone, DOB, address), account info, save button with loading state
+- Created TwoFactorSheet: full 2FA setup flow with QR code visual, OTP input, verification, recovery codes, enable/disable state machine
+- Created ChangePasswordSheet: password requirements with live validation, strength indicator, show/hide toggle, confirm validation
+- Updated ProfileDashboard: split menu into "Tài khoản cá nhân" (edit profile, 2FA, change password) and "Cài đặt ứng dụng" sections, wired edit button to openOverlay
+- Updated AppLayout: imported and mounted EditProfileSheet, TwoFactorSheet, ChangePasswordSheet
+- Created 3 API endpoints: /api/user/profile, /api/user/password, /api/user/two-factor
+- All lint checks pass
+
+Stage Summary:
+- Header is now fixed at top, stays visible while scrolling
+- Profile section now has 3 new functional sheets for account management
+- All forms have proper validation, loading states, and Vietnamese UI text
+- API endpoints provide backend support for all new features
