@@ -53,6 +53,13 @@ interface AppState {
   // Chat - active expert room
   activeChatExpertId: string | null
   setActiveChatExpertId: (id: string | null) => void
+
+  // Chart Detail View
+  chartDetailSymbol: string | null
+  chartDetailAssetName: string | null
+  chartDetailAssetType: string | null
+  openChartDetail: (symbol: string, name: string, type: string) => void
+  closeChartDetail: () => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -87,4 +94,19 @@ export const useAppStore = create<AppState>((set) => ({
   // Chat
   activeChatExpertId: null,
   setActiveChatExpertId: (id) => set({ activeChatExpertId: id }),
+
+  // Chart Detail View
+  chartDetailSymbol: null,
+  chartDetailAssetName: null,
+  chartDetailAssetType: null,
+  openChartDetail: (symbol, name, type) => set({
+    chartDetailSymbol: symbol,
+    chartDetailAssetName: name,
+    chartDetailAssetType: type,
+  }),
+  closeChartDetail: () => set({
+    chartDetailSymbol: null,
+    chartDetailAssetName: null,
+    chartDetailAssetType: null,
+  }),
 }))

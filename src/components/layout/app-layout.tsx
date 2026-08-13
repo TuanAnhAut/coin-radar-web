@@ -24,11 +24,12 @@ import { AlertFab } from '@/components/alerts/alert-fab'
 import { AlertTemplatesSheet } from '@/components/alerts/alert-templates-sheet'
 import { AlertBuilderSheet } from '@/components/alerts/alert-builder-sheet'
 import { AlertDetailSheet } from '@/components/alerts/alert-detail-sheet'
+import { ChartDetailView } from '@/components/chart/chart-detail-view'
 import { useAppStore } from '@/store/app-store'
 import { cn } from '@/lib/utils'
 
 export function AppLayout() {
-  const { currentView, sidebarCollapsed } = useAppStore()
+  const { currentView, sidebarCollapsed, chartDetailSymbol } = useAppStore()
 
   return (
     <div className="min-h-screen flex flex-col bg-background overflow-hidden">
@@ -57,7 +58,7 @@ export function AppLayout() {
             )}
           >
             <div className="mx-auto w-full">
-              {renderView(currentView)}
+              {chartDetailSymbol ? <ChartDetailView /> : renderView(currentView)}
             </div>
           </div>
         </main>

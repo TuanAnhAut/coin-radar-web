@@ -10,6 +10,7 @@ import {
   ArrowDown,
   TrendingUp,
   TrendingDown,
+  LineChart,
 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Input } from '@/components/ui/input'
@@ -56,7 +57,7 @@ function SortIcon({ field, currentField, currentDir }: { field: SortField; curre
 }
 
 export function MarketOverview() {
-  const { openOverlay } = useAppStore()
+  const { openOverlay, openChartDetail } = useAppStore()
   const [activeTab, setActiveTab] = useState<AssetType>('stock')
   const [searchQuery, setSearchQuery] = useState('')
   const [sectorFilter, setSectorFilter] = useState('Tất cả')
@@ -277,6 +278,7 @@ export function MarketOverview() {
                             Vốn hóa <SortIcon field="marketCap" currentField={sortField} currentDir={sortDir} />
                           </div>
                         </TableHead>
+                        <TableHead className="w-10 text-center text-xs font-medium">Biểu đồ</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -303,6 +305,18 @@ export function MarketOverview() {
                           <TableCell className="text-muted-foreground hidden text-right text-sm md:table-cell">
                             {asset.marketCap > 0 ? formatVolume(asset.marketCap) : '—'}
                           </TableCell>
+                          <TableCell className="text-center">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                openChartDetail(asset.symbol, asset.name, asset.type)
+                              }}
+                              className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                              title="Xem biểu đồ"
+                            >
+                              <LineChart className="size-4" />
+                            </button>
+                          </TableCell>
                         </motion.tr>
                       ))}
                     </TableBody>
@@ -328,11 +342,23 @@ export function MarketOverview() {
                       </div>
                       {renderChange(asset.changePercent)}
                     </div>
-                    <div className="flex items-end justify-between">
+                    <div className="flex items-end justify-between gap-2">
                       <span className="text-base font-bold">{renderPrice(asset)}</span>
-                      {asset.marketCap > 0 && (
-                        <span className="text-muted-foreground text-[11px]">Vốn: {formatVolume(asset.marketCap)}</span>
-                      )}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openChartDetail(asset.symbol, asset.name, asset.type)
+                          }}
+                          className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                          title="Xem biểu đồ"
+                        >
+                          <LineChart className="size-3.5" />
+                        </button>
+                        {asset.marketCap > 0 && (
+                          <span className="text-muted-foreground text-[11px]">Vốn: {formatVolume(asset.marketCap)}</span>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 ))}

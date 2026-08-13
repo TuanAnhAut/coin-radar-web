@@ -7,6 +7,7 @@ import {
   Bell,
   Activity,
   ChevronRight,
+  LineChart,
 } from 'lucide-react'
 import {
   Sheet,
@@ -107,7 +108,7 @@ function RsiGauge({ value }: { value: number }) {
 }
 
 export function AssetDetailSheet() {
-  const { activeOverlay, overlayData, closeOverlay, openOverlay } = useAppStore()
+  const { activeOverlay, overlayData, closeOverlay, openOverlay, openChartDetail } = useAppStore()
   const isMobile = useIsMobile()
   const symbol = (overlayData?.symbol as string) ?? ''
   const isOpen = activeOverlay === 'asset-detail' && !!symbol
@@ -340,9 +341,20 @@ export function AssetDetailSheet() {
       {/* Section 4: Action Buttons - stacked full width on mobile, row on desktop */}
       {detail && (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            className="min-h-[48px] w-full sm:flex-1"
+            onClick={() => {
+              closeOverlay()
+              openChartDetail(detail.symbol, detail.name, detail.type)
+            }}
+          >
+            <LineChart className="mr-2 size-4" />
+            Xem biểu đồ
+          </Button>
           <Button variant="outline" className="min-h-[48px] w-full sm:flex-1" onClick={() => openOverlay('watchlist')}>
             <Bookmark className="mr-2 size-4" />
-            Thêm vào watchlist
+            Watchlist
           </Button>
           <Button
             className="min-h-[48px] w-full sm:flex-1"

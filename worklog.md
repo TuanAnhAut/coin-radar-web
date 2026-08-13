@@ -486,3 +486,52 @@ Stage Summary:
 - No console errors on any view
 - No horizontal overflow on any view
 - All Sheet/Drawer scroll containers now have min-h-0 for proper flex shrinking
+
+---
+Task ID: chart-detail-view
+Agent: main
+Task: Create TradingView-like chart detail page with drawing tools, indicators, and alert integration
+
+Work Log:
+- Updated app-store.ts: Added chartDetailSymbol, chartDetailAssetName, chartDetailAssetType state + openChartDetail/closeChartDetail actions
+- Created src/lib/chart-types.ts: DrawingTool, ChartDrawing, ActiveDrawing, IndicatorConfig, ChartLayout, ChartViewport types
+- Created src/lib/chart-utils.ts: SMA, EMA, RSI, MACD, Bollinger Bands calculations; viewport/layout computation; price↔Y coordinate conversions; Fibonacci levels; alert-from-drawing conversion
+- Created src/components/chart/chart-canvas.tsx: Full HTML5 Canvas candlestick chart engine with:
+  - OHLC candlestick rendering with green/red colors
+  - Volume bars at bottom of chart
+  - Grid lines (price + time)
+  - Moving average overlays (MA20/50/100)
+  - Bollinger Bands overlay
+  - RSI sub-indicator panel with overbought/oversold zones
+  - MACD sub-indicator panel with histogram, line, signal
+  - Crosshair cursor with price/time labels
+  - Drawing tools: horizontal line, trend line, Fibonacci retracement, rectangle
+  - Mouse wheel zoom, drag-to-pan, touch support
+  - Context menu support for alert creation from drawings
+  - Double-click to delete drawings
+  - DPR-aware rendering for sharp display on retina screens
+- Created src/components/chart/chart-detail-view.tsx: Full page chart view with:
+  - Header with asset info, price, OHLC stats, watchlist/alert buttons
+  - Crosshair OHLC info bar showing current candle data
+  - Drawing tools toolbar (Crosshair, Đường ngang, Đường xu hướng, Fibonacci, Vùng giá, Ghi chú)
+  - Time period selector (1D, 1W, 1M, 3M, 1Y, ALL)
+  - Collapsible indicators panel (MA20, MA50, MA100, BB, RSI, MACD, Volume)
+  - Context menu for setting alerts from chart price/drawings
+  - Drawing list with alert and delete buttons per drawing
+  - Bottom info bar with RSI/MA quick stats
+  - Responsive layout (mobile + desktop)
+- Updated src/components/layout/app-layout.tsx: Added chartDetailSymbol check to render ChartDetailView
+- Updated src/components/market/asset-detail-sheet.tsx: Added "Xem biểu đồ" button in action section
+- Updated src/components/market/market-overview.tsx: Added chart icon buttons in both table rows and mobile cards
+- Created src/app/api/assets/[symbol]/chart/route.ts: API route for detailed OHLC data generation
+- Fixed gitBranch → GitBranch PascalCase icon import
+
+Stage Summary:
+- Full TradingView-like chart page working with candlestick rendering
+- 6 drawing tools available (crosshair, horizontal line, trendline, fibonacci, rectangle, text)
+- 7 technical indicators toggleable (MA20, MA50, MA100, BB, RSI, MACD, Volume)
+- Alert creation from drawings and chart price via context menu
+- "Xem biểu đồ" button accessible from: market table rows, mobile cards, and asset detail sheet
+- All flows verified: market → chart button → chart view → back → market
+- Canvas renders properly on both light and dark themes
+- No console errors after gitBranch fix
