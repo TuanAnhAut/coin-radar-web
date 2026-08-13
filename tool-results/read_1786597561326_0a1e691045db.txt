@@ -1,0 +1,998 @@
+     1→'use client'
+     2→
+     3→import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
+     4→import type { OHLCData } from '@/lib/types'
+     5→import type {
+     6→  DrawingTool,
+     7→  ChartDrawing,
+     8→  ActiveDrawing,
+     9→  IndicatorData,
+    10→  ChartLayout,
+    11→  ChartViewport,
+    12→  IndicatorConfig,
+    13→} from '@/lib/chart-types'
+    14→import {
+    15→  computeIndicators,
+    16→  computeViewport,
+    17→  computeLayout,
+    18→  priceToY,
+    19→  yToPrice,
+    20→  indexToX,
+    21→  xToIndex,
+    22→  formatChartPrice,
+    23→  formatChartVolume,
+    24→  fibonacciLevels,
+    25→  niceStep,
+    26→} from '@/lib/chart-utils'
+    27→import { cn } from '@/lib/utils'
+    28→
+    29→// ==================== Professional Color Palette ====================
+    30→
+    31→function getTheme(): { bg: string; grid: string; gridLight: string; text: string; textDim: string; border: string; crossBg: string; crossText: string; gain: string; loss: string; gainSoft: string; lossSoft: string } {
+    32→  const dark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark')
+    33→  return dark
+    34→    ? {
+    35→        bg: '#131722',
+    36→        grid: 'rgba(42, 46, 57, 0.5)',
+    37→        gridLight: 'rgba(42, 46, 57, 0.25)',
+    38→        text: 'rgba(178, 186, 194, 0.9)',
+    39→        textDim: 'rgba(178, 186, 194, 0.5)',
+    40→        border: 'rgba(42, 46, 57, 0.8)',
+    41→        crossBg: '#2a2e39',
+    42→        crossText: '#d1d4dc',
+    43→        gain: '#26a69a',
+    44→        loss: '#ef5350',
+    45→        gainSoft: 'rgba(38, 166, 154, 0.25)',
+    46→        lossSoft: 'rgba(239, 83, 80, 0.25)',
+    47→      }
+    48→    : {
+    49→        bg: '#ffffff',
+    50→        grid: 'rgba(226, 228, 233, 0.6)',
+    51→        gridLight: 'rgba(226, 228, 233, 0.3)',
+    52→        text: 'rgba(82, 87, 96, 0.9)',
+    53→        textDim: 'rgba(82, 87, 96, 0.5)',
+    54→        border: 'rgba(226, 228, 233, 0.9)',
+    55→        crossBg: '#e8ecf1',
+    56→        crossText: '#333',
+    57→        gain: '#089981',
+    58→        loss: '#f23645',
+    59→        gainSoft: 'rgba(8, 153, 129, 0.15)',
+    60→        lossSoft: 'rgba(242, 54, 69, 0.15)',
+    61→      }
+    62→}
+    63→
+    64→// Indicator colors
+    65→const IND_COLORS = {
+    66→  ma20: '#f7a21b',
+    67→  ma50: '#2196f3',
+    68→  ma100: '#ab47bc',
+    69→  bbLine: 'rgba(130, 140, 180, 0.35)',
+    70→  bbFill: 'rgba(130, 140, 180, 0.04)',
+    71→  rsi: '#7e57c2',
+    72→  macdLine: '#2196f3',
+    73→  macdSignal: '#ff6d00',
+    74→  volGain: 'rgba(38, 166, 154, 0.35)',
+    75→  volLoss: 'rgba(239, 83, 80, 0.35)',
+    76→}
+    77→
+    78→const DRAW_COLORS = ['#f7a21b', '#7e57c2', '#2196f3', '#ef5350', '#ff6d00', '#26a69a']
+    79→
+    80→// ==================== Canvas Props ====================
+    81→
+    82→interface ChartCanvasProps {
+    83→  data: OHLCData[]
+    84→  assetType?: string
+    85→  width: number
+    86→  height: number
+    87→  activeTool: DrawingTool
+    88→  drawings: ChartDrawing[]
+    89→  onDrawingsChange: (drawings: ChartDrawing[]) => void
+    90→  indicators: IndicatorConfig[]
+    91→  onCrosshairMove?: (price: number | null, index: number | null, candle: OHLCData | null) => void
+    92→  onDrawingClick?: (drawing: ChartDrawing) => void
+    93→}
+    94→
+    95→export function ChartCanvas({
+    96→  data,
+    97→  assetType,
+    98→  width,
+    99→  height,
+   100→  activeTool,
+   101→  drawings,
+   102→  onDrawingsChange,
+   103→  indicators,
+   104→  onCrosshairMove,
+   105→  onDrawingClick,
+   106→}: ChartCanvasProps) {
+   107→  const canvasRef = useRef<HTMLCanvasElement>(null)
+   108→  const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1
+   109→  const mouseRef = useRef<{ x: number; y: number } | null>(null)
+   110→  const dragRef = useRef<ActiveDrawing | null>(null)
+   111→  const panRef = useRef<{ startX: number; startOffset: number } | null>(null)
+   112→  const animRef = useRef<number>(0)
+   113→
+   114→  const [visibleStart, setVisibleStart] = useState(() => Math.max(0, data.length - 80))
+   115→  const [visibleEnd, setVisibleEnd] = useState(() => data.length - 1)
+   116→  const [colorIdx, setColorIdx] = useState(0)
+   117→  const themeRef = useRef(getTheme())
+   118→
+   119→  // Listen for theme changes
+   120→  useEffect(() => {
+   121→    const obs = new MutationObserver(() => { themeRef.current = getTheme(); render() })
+   122→    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+   123→    return () => obs.disconnect()
+   124→  }, [])
+   125→
+   126→  const indicatorData = useMemo(() => computeIndicators(data), [data])
+   127→
+   128→  const rsiEnabled = indicators.some((i) => i.type === 'rsi' && i.enabled)
+   129→  const macdEnabled = indicators.some((i) => i.type === 'macd' && i.enabled)
+   130→  const bbEnabled = indicators.some((i) => i.type === 'bb' && i.enabled)
+   131→  const volEnabled = indicators.some((i) => i.type === 'volume' && i.enabled)
+   132→
+   133→  const layout = useMemo(
+   134→    () => computeLayout(width, height, rsiEnabled, macdEnabled, dpr),
+   135→    [width, height, rsiEnabled, macdEnabled]
+   136→  )
+   137→
+   138→  const viewport = useMemo(
+   139→    () => computeViewport(data, visibleStart, visibleEnd, indicatorData),
+   140→    [data, visibleStart, visibleEnd, indicatorData]
+   141→  )
+   142→
+   143→  // ==================== Master Render ====================
+   144→
+   145→  const render = useCallback(() => {
+   146→    const canvas = canvasRef.current
+   147→    if (!canvas) return
+   148→    const ctx = canvas.getContext('2d')
+   149→    if (!ctx) return
+   150→
+   151→    const w = width * dpr
+   152→    const h = height * dpr
+   153→    ctx.clearRect(0, 0, w, h)
+   154→    ctx.scale(dpr, dpr)
+   155→
+   156→    // Background
+   157→    ctx.fillStyle = themeRef.current.bg
+   158→    ctx.fillRect(0, 0, width, height)
+   159→
+   160→    // Grid
+   161→    drawGrid(ctx, viewport, layout)
+   162→
+   163→    // Volume
+   164→    if (volEnabled) drawVolume(ctx, data, viewport, layout)
+   165→
+   166→    // Candles
+   167→    drawCandles(ctx, data, viewport, layout)
+   168→
+   169→    // Overlay indicators
+   170→    drawOverlays(ctx, indicatorData, viewport, layout, bbEnabled)
+   171→
+   172→    // Sub-indicators
+   173→    if (rsiEnabled && layout.rsiTop != null && layout.rsiBottom != null)
+   174→      drawRSI(ctx, indicatorData, viewport, layout)
+   175→    if (macdEnabled && layout.macdTop != null && layout.macdBottom != null)
+   176→      drawMACD(ctx, indicatorData, viewport, layout)
+   177→
+   178→    // Separator lines for sub-charts
+   179→    drawSeparators(ctx, layout)
+   180→
+   181→    // Drawings
+   182→    renderDrawings(ctx, drawings, viewport, layout)
+   183→
+   184→    // Active preview
+   185→    if (dragRef.current) renderPreview(ctx, dragRef.current, viewport, layout)
+   186→
+   187→    // Crosshair + floating OHLC panel
+   188→    if (mouseRef.current && !dragRef.current && !panRef.current) {
+   189→      drawCrosshair(ctx, mouseRef.current, viewport, layout)
+   190→      drawInfoPanel(ctx, mouseRef.current, viewport, layout, data)
+   191→    }
+   192→
+   193→    // Price axis labels
+   194→    drawPriceAxis(ctx, viewport, layout)
+   195→
+   196→    // Time axis labels
+   197→    drawTimeAxis(ctx, data, viewport, layout)
+   198→
+   199→    // Last price marker
+   200→    drawLastPriceMarker(ctx, data, viewport, layout)
+   201→
+   202→    ctx.setTransform(1, 0, 0, 1, 0, 0)
+   203→  }, [data, width, height, dpr, viewport, layout, theme, indicatorData, drawings, rsiEnabled, macdEnabled, bbEnabled, volEnabled])
+   204→
+   205→  useEffect(() => {
+   206→    cancelAnimationFrame(animRef.current)
+   207→    animRef.current = requestAnimationFrame(render)
+   208→    return () => cancelAnimationFrame(animRef.current)
+   209→  }, [render])
+   210→
+   211→  // Resize
+   212→  useEffect(() => {
+   213→    let rafId = 0
+   214→    const onResize = () => { cancelAnimationFrame(rafId); rafId = requestAnimationFrame(render) }
+   215→    window.addEventListener('resize', onResize)
+   216→    return () => { window.removeEventListener('resize', onResize); cancelAnimationFrame(rafId) }
+   217→  }, [render])
+   218→
+   219→  // ==================== Input Handlers ====================
+   220→
+   221→  const getPos = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+   222→    const canvas = canvasRef.current
+   223→    if (!canvas) return null
+   224→    const rect = canvas.getBoundingClientRect()
+   225→    if ('touches' in e) {
+   226→      const t = e.touches[0] || e.changedTouches[0]
+   227→      return t ? { x: t.clientX - rect.left, y: t.clientY - rect.top } : null
+   228→    }
+   229→    return { x: e.clientX - rect.left, y: e.clientY - rect.top }
+   230→  }, [])
+   231→
+   232→  const onMouseDown = useCallback((e: React.MouseEvent) => {
+   233→    const pos = getPos(e)
+   234→    if (!pos) return
+   235→
+   236→    // Middle-click or alt+click = pan
+   237→    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+   238→      panRef.current = { startX: pos.x, startOffset: visibleEnd - visibleStart }
+   239→      return
+   240→    }
+   241→
+   242→    if (activeTool !== 'crosshair' && pos.x < layout.chartRight) {
+   243→      const idx = xToIndex(pos.x, viewport, layout)
+   244→      const price = yToPrice(pos.y, viewport, layout)
+   245→      dragRef.current = {
+   246→        type: activeTool,
+   247→        startScreen: pos,
+   248→        currentScreen: pos,
+   249→        startData: { index: idx, price },
+   250→        currentData: { index: idx, price },
+   251→      }
+   252→    }
+   253→  }, [activeTool, viewport, layout, getPos, visibleStart, visibleEnd])
+   254→
+   255→  const onMouseMove = useCallback((e: React.MouseEvent) => {
+   256→    const pos = getPos(e)
+   257→    if (!pos) return
+   258→    mouseRef.current = pos
+   259→
+   260→    if (panRef.current) {
+   261→      const dx = pos.x - panRef.current.startX
+   262→      const cpi = (visibleEnd - visibleStart) / (layout.chartRight - layout.chartLeft)
+   263→      const shift = Math.round(-dx * cpi)
+   264→      let ns = Math.max(0, visibleStart + shift)
+   265→      let ne = ns + panRef.current.startOffset
+   266→      if (ne >= data.length) { ne = data.length - 1; ns = Math.max(0, ne - panRef.current.startOffset) }
+   267→      setVisibleStart(ns); setVisibleEnd(ne)
+   268→      return
+   269→    }
+   270→
+   271→    if (dragRef.current) {
+   272→      dragRef.current = {
+   273→        ...dragRef.current,
+   274→        currentScreen: pos,
+   275→        currentData: { index: xToIndex(pos.x, viewport, layout), price: yToPrice(pos.y, viewport, layout) },
+   276→      }
+   277→      render(); return
+   278→    }
+   279→
+   280→    if (onCrosshairMove && pos.x < layout.chartRight && pos.y < layout.chartBottom) {
+   281→      const idx = xToIndex(pos.x, viewport, layout)
+   282→      const price = yToPrice(pos.y, viewport, layout)
+   283→      const candle = data[idx] ?? null
+   284→      onCrosshairMove(price, idx, candle)
+   285→    }
+   286→    render()
+   287→  }, [viewport, layout, getPos, render, onCrosshairMove, data, visibleStart, visibleEnd])
+   288→
+   289→  const onMouseUp = useCallback(() => {
+   290→    if (panRef.current) { panRef.current = null; return }
+   291→    if (dragRef.current) { finalizeDrawing(); dragRef.current = null; render() }
+   292→  }, [render])
+   293→
+   294→  const onMouseLeave = useCallback(() => {
+   295→    mouseRef.current = null
+   296→    if (panRef.current) panRef.current = null
+   297→    if (dragRef.current) { finalizeDrawing(); dragRef.current = null }
+   298→    render()
+   299→    onCrosshairMove?.(null, null, null)
+   300→  }, [render, onCrosshairMove])
+   301→
+   302→  // Touch
+   303→  const onTouchStart = useCallback((e: React.TouchEvent) => {
+   304→    if (e.touches.length !== 1) return
+   305→    const pos = getPos(e)
+   306→    if (!pos) return
+   307→    mouseRef.current = pos
+   308→    if (activeTool !== 'crosshair' && pos.x < layout.chartRight) {
+   309→      const idx = xToIndex(pos.x, viewport, layout)
+   310→      const price = yToPrice(pos.y, viewport, layout)
+   311→      dragRef.current = { type: activeTool, startScreen: pos, currentScreen: pos, startData: { index: idx, price }, currentData: { index: idx, price } }
+   312→    } else {
+   313→      panRef.current = { startX: pos.x, startOffset: visibleEnd - visibleStart }
+   314→    }
+   315→  }, [activeTool, viewport, layout, getPos, visibleStart, visibleEnd])
+   316→
+   317→  const onTouchMove = useCallback((e: React.TouchEvent) => {
+   318→    e.preventDefault()
+   319→    const pos = getPos(e)
+   320→    if (!pos) return
+   321→    mouseRef.current = pos
+   322→    if (panRef.current && !dragRef.current) {
+   323→      const dx = pos.x - panRef.current.startX
+   324→      const cpi = (visibleEnd - visibleStart) / (layout.chartRight - layout.chartLeft)
+   325→      const shift = Math.round(-dx * cpi)
+   326→      let ns = Math.max(0, visibleStart + shift)
+   327→      let ne = ns + panRef.current.startOffset
+   328→      if (ne >= data.length) { ne = data.length - 1; ns = Math.max(0, ne - panRef.current.startOffset) }
+   329→      setVisibleStart(ns); setVisibleEnd(ne)
+   330→    } else if (dragRef.current) {
+   331→      dragRef.current = {
+   332→        ...dragRef.current,
+   333→        currentScreen: pos,
+   334→        currentData: { index: xToIndex(pos.x, viewport, layout), price: yToPrice(pos.y, viewport, layout) },
+   335→      }
+   336→    }
+   337→    render()
+   338→  }, [viewport, layout, getPos, render, visibleStart, visibleEnd])
+   339→
+   340→  const onTouchEnd = useCallback(() => {
+   341→    mouseRef.current = null
+   342→    if (panRef.current) panRef.current = null
+   343→    if (dragRef.current) { finalizeDrawing(); dragRef.current = null }
+   344→    render()
+   345→  }, [render])
+   346→
+   347→  // Wheel zoom
+   348→  const onWheel = useCallback((e: React.WheelEvent) => {
+   349→    e.preventDefault()
+   350→    const factor = e.deltaY > 0 ? 1.12 : 0.89
+   351→    const range = visibleEnd - visibleStart
+   352→    const newRange = Math.round(Math.max(15, Math.min(data.length - 1, range * factor)))
+   353→    const center = Math.round((visibleStart + visibleEnd) / 2)
+   354→    let ns = Math.max(0, center - Math.round(newRange / 2))
+   355→    let ne = ns + newRange - 1
+   356→    if (ne >= data.length) { ne = data.length - 1; ns = Math.max(0, ne - newRange + 1) }
+   357→    setVisibleStart(ns); setVisibleEnd(ne)
+   358→  }, [visibleStart, visibleEnd, data.length])
+   359→
+   360→  // Context menu → alert
+   361→  const onContextMenu = useCallback((e: React.MouseEvent) => {
+   362→    const pos = getPos(e)
+   363→    if (!pos) return
+   364→    for (const d of drawings) {
+   365→      if (d.type === 'hline' && d.points.length > 0) {
+   366→        const ly = priceToY(d.points[0].price, viewport, layout)
+   367→        if (Math.abs(pos.y - ly) < 10 && pos.x < layout.chartRight) { e.preventDefault(); onDrawingClick?.(d); return }
+   368→      }
+   369→      if (d.type === 'trendline' && d.points.length >= 2) {
+   370→        const x1 = indexToX(d.points[0].index, viewport, layout), y1 = priceToY(d.points[0].price, viewport, layout)
+   371→        const x2 = indexToX(d.points[1].index, viewport, layout), y2 = priceToY(d.points[1].price, viewport, layout)
+   372→        if (ptLineDist(pos.x, pos.y, x1, y1, x2, y2) < 12) { e.preventDefault(); onDrawingClick?.(d); return }
+   373→      }
+   374→    }
+   375→  }, [drawings, viewport, layout, getPos, onDrawingClick])
+   376→
+   377→  // Double-click delete
+   378→  const onDoubleClick = useCallback((e: React.MouseEvent) => {
+   379→    const pos = getPos(e)
+   380→    if (!pos) return
+   381→    for (let i = drawings.length - 1; i >= 0; i--) {
+   382→      const d = drawings[i]
+   383→      if (d.type === 'hline' && d.points.length > 0) {
+   384→        if (Math.abs(priceToY(d.points[0].price, viewport, layout) - pos.y) < 10 && pos.x < layout.chartRight)
+   385→          { onDrawingsChange(drawings.filter((_, j) => j !== i)); return }
+   386→      }
+   387→      if (d.type === 'trendline' && d.points.length >= 2) {
+   388→        const x1 = indexToX(d.points[0].index, viewport, layout), y1 = priceToY(d.points[0].price, viewport, layout)
+   389→        const x2 = indexToX(d.points[1].index, viewport, layout), y2 = priceToY(d.points[1].price, viewport, layout)
+   390→        if (ptLineDist(pos.x, pos.y, x1, y1, x2, y2) < 12)
+   391→          { onDrawingsChange(drawings.filter((_, j) => j !== i)); return }
+   392→      }
+   393→      if (d.type === 'fibonacci' && d.points.length >= 2) {
+   394→        const lx1 = Math.min(indexToX(d.points[0].index, viewport, layout), indexToX(d.points[1].index, viewport, layout))
+   395→        const lx2 = Math.max(indexToX(d.points[0].index, viewport, layout), indexToX(d.points[1].index, viewport, layout))
+   396→        if (pos.x >= lx1 && pos.x <= lx2) { onDrawingsChange(drawings.filter((_, j) => j !== i)); return }
+   397→      }
+   398→      if (d.type === 'rectangle' && d.points.length >= 2) {
+   399→        const rx1 = Math.min(indexToX(d.points[0].index, viewport, layout), indexToX(d.points[1].index, viewport, layout))
+   400→        const rx2 = Math.max(indexToX(d.points[0].index, viewport, layout), indexToX(d.points[1].index, viewport, layout))
+   401→        const ry1 = Math.min(priceToY(d.points[0].price, viewport, layout), priceToY(d.points[1].price, viewport, layout))
+   402→        const ry2 = Math.max(priceToY(d.points[0].price, viewport, layout), priceToY(d.points[1].price, viewport, layout))
+   403→        if (pos.x >= rx1 && pos.x <= rx2 && pos.y >= ry1 && pos.y <= ry2)
+   404→          { onDrawingsChange(drawings.filter((_, j) => j !== i)); return }
+   405→      }
+   406→    }
+   407→  }, [drawings, viewport, layout, getPos, onDrawingsChange])
+   408→
+   409→  const finalizeDrawing = useCallback(() => {
+   410→    if (!dragRef.current?.startData || !dragRef.current?.currentData) return
+   411→    const { type, startData, currentData } = dragRef.current
+   412→    const color = DRAW_COLORS[colorIdx % DRAW_COLORS.length]
+   413→    const nd: ChartDrawing = { id: `d-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, type, color, width: 1.5, points: [startData, currentData] }
+   414→    if (type === 'hline') nd.points = [startData]
+   415→    if (type === 'fibonacci' && startData && currentData) {
+   416→      nd.fibLevels = fibonacciLevels(Math.max(startData.price, currentData.price), Math.min(startData.price, currentData.price))
+   417→    }
+   418→    onDrawingsChange([...drawings, nd])
+   419→    setColorIdx((c) => c + 1)
+   420→  }, [drawings, colorIdx, onDrawingsChange])
+   421→
+   422→  return (
+   423→    <div className="relative w-full h-full no-select" style={{ width, height }}>
+   424→      <canvas
+   425→        ref={canvasRef}
+   426→        width={width * dpr}
+   427→        height={height * dpr}
+   428→        style={{ width, height }}
+   429→        className={cn(
+   430→          'block touch-none',
+   431→          activeTool === 'crosshair' ? 'cursor-crosshair' : 'cursor-cell'
+   432→        )}
+   433→        onMouseDown={onMouseDown}
+   434→        onMouseMove={onMouseMove}
+   435→        onMouseUp={onMouseUp}
+   436→        onMouseLeave={onMouseLeave}
+   437→        onWheel={onWheel}
+   438→        onContextMenu={onContextMenu}
+   439→        onDoubleClick={onDoubleClick}
+   440→        onTouchStart={onTouchStart}
+   441→        onTouchMove={onTouchMove}
+   442→        onTouchEnd={onTouchEnd}
+   443→      />
+   444→    </div>
+   445→  )
+   446→}
+   447→
+   448→// ==================== DRAWING FUNCTIONS ====================
+   449→
+   450→function drawGrid(ctx: CanvasRenderingContext2D, vp: ChartViewport, layout: ChartLayout) {
+   451→  const { chartTop, chartBottom, chartRight, volumeHeight } = layout
+   452→  const priceBottom = chartBottom - volumeHeight
+   453→  const priceRange = vp.maxPrice - vp.minPrice
+   454→  const step = niceStep(priceRange, 6)
+   455→
+   456→  // Horizontal price grid
+   457→  let price = Math.ceil(vp.minPrice / step) * step
+   458→  while (price <= vp.maxPrice) {
+   459→    const y = Math.round(priceToY(price, vp, layout)) + 0.5
+   460→    if (y >= chartTop && y <= priceBottom) {
+   461→      ctx.strokeStyle = gridColor(y, chartTop, priceBottom)
+   462→      ctx.lineWidth = 1
+   463→      ctx.beginPath(); ctx.moveTo(layout.chartLeft, y); ctx.lineTo(chartRight, y); ctx.stroke()
+   464→    }
+   465→    price += step
+   466→  }
+   467→
+   468→  // Vertical time grid
+   469→  const total = vp.endIndex - vp.startIndex + 1
+   470→  const stepC = Math.max(1, Math.round(total / 8))
+   471→  for (let i = vp.startIndex; i <= vp.endIndex; i += stepC) {
+   472→    const x = Math.round(indexToX(i, vp, layout)) + 0.5
+   473→    ctx.strokeStyle = 'rgba(128,128,128,0.08)'
+   474→    ctx.lineWidth = 1
+   475→    ctx.beginPath(); ctx.moveTo(x, chartTop); ctx.lineTo(x, chartBottom); ctx.stroke()
+   476→  }
+   477→
+   478→  // Chart border
+   479→  ctx.strokeStyle = 'rgba(128,128,128,0.12)'
+   480→  ctx.lineWidth = 1
+   481→  ctx.strokeRect(layout.chartLeft + 0.5, chartTop + 0.5, chartRight - layout.chartLeft - 1, chartBottom - chartTop - 1)
+   482→}
+   483→
+   484→function gridColor(y: number, top: number, bottom: number) {
+   485→  const mid = (top + bottom) / 2
+   486→  const dist = Math.abs(y - mid) / (bottom - top)
+   487→  return dist < 0.25 ? 'rgba(128,128,128,0.06)' : 'rgba(128,128,128,0.12)'
+   488→}
+   489→
+   490→function drawCandles(ctx: CanvasRenderingContext2D, data: OHLCData[], vp: ChartViewport, layout: ChartLayout) {
+   491→  const { chartRight, chartBottom, volumeHeight } = layout
+   492→  const priceBottom = chartBottom - volumeHeight
+   493→  const total = vp.endIndex - vp.startIndex + 1
+   494→  const chartW = chartRight - layout.chartLeft
+   495→  const slotW = chartW / total
+   496→  const bodyW = Math.max(2, slotW * 0.75)
+   497→  const r = Math.min(2, bodyW / 3) // corner radius
+   498→
+   499→  for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   500→    const c = data[i]
+   501→    if (!c) continue
+   502→    const x = indexToX(i, vp, layout)
+   503→    const green = c.close >= c.open
+   504→
+   505→    // Wick - rounded cap via lineCap
+   506→    ctx.lineCap = 'round'
+   507→    ctx.strokeStyle = green ? themeRef.current.gain : themeRef.current.loss
+   508→    ctx.lineWidth = Math.max(1.5, slotW * 0.15)
+   509→    ctx.beginPath()
+   510→    ctx.moveTo(x, Math.round(priceToY(c.high, vp, layout)))
+   511→    ctx.lineTo(x, Math.round(priceToY(c.low, vp, layout)))
+   512→    ctx.stroke()
+   513→    ctx.lineCap = 'butt'
+   514→
+   515→    // Body with rounded corners
+   516→    let top = priceToY(Math.max(c.open, c.close), vp, layout)
+   517→    let bot = priceToY(Math.min(c.open, c.close), vp, layout)
+   518→    let bodyH = Math.max(2, bot - top)
+   519→
+   520→    ctx.fillStyle = green ? themeRef.current.gain : themeRef.current.loss
+   521→    if (r >= 1 && bodyH > r * 2) {
+   522→      roundedRect(ctx, x - bodyW / 2, top, bodyW, bodyH, r)
+   523→      ctx.fill()
+   524→    } else {
+   525→      ctx.fillRect(x - bodyW / 2, Math.round(top), bodyW, Math.round(bodyH))
+   526→    }
+   527→
+   528→    // Subtle glow for last candle
+   529→    if (i === vp.endIndex) {
+   530→      ctx.shadowColor = green ? themeRef.current.gain : themeRef.current.loss
+   531→      ctx.shadowBlur = 8
+   532→      ctx.fillRect(x - bodyW / 2, Math.round(top), bodyW, Math.round(bodyH))
+   533→      ctx.shadowBlur = 0
+   534→      ctx.shadowColor = 'transparent'
+   535→    }
+   536→  }
+   537→}
+   538→
+   539→function drawVolume(ctx: CanvasRenderingContext2D, data: OHLCData[], vp: ChartViewport, layout: ChartLayout) {
+   540→  const { chartBottom, volumeHeight, chartRight } = layout
+   541→  const total = vp.endIndex - vp.startIndex + 1
+   542→  const chartW = chartRight - layout.chartLeft
+   543→  const barW = chartW / total
+   544→  let maxVol = 0
+   545→  for (let i = vp.startIndex; i <= vp.endIndex; i++) maxVol = Math.max(maxVol, data[i].volume)
+   546→  if (maxVol === 0) return
+   547→
+   548→  // Volume separator
+   549→  const volTop = chartBottom - volumeHeight
+   550→  ctx.strokeStyle = 'rgba(128,128,128,0.1)'
+   551→  ctx.lineWidth = 0.5
+   552→  ctx.beginPath(); ctx.moveTo(layout.chartLeft, Math.round(volTop) + 0.5); ctx.lineTo(chartRight, Math.round(volTop) + 0.5); ctx.stroke()
+   553→
+   554→  for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   555→    const c = data[i]
+   556→    const x = indexToX(i, vp, layout)
+   557→    const green = c.close >= c.open
+   558→    const barH = (c.volume / maxVol) * volumeHeight * 0.85
+   559→    const bw = Math.max(1, barW * 0.55)
+   560→
+   561→    // Gradient fill
+   562→    const grad = ctx.createLinearGradient(0, chartBottom - barH, 0, chartBottom)
+   563→    grad.addColorStop(0, green ? IND_COLORS.volGain : IND_COLORS.volLoss)
+   564→    grad.addColorStop(1, 'transparent')
+   565→    ctx.fillStyle = grad
+   566→    ctx.fillRect(x - bw / 2, chartBottom - barH, bw, barH)
+   567→  }
+   568→}
+   569→
+   570→function drawOverlays(ctx: CanvasRenderingContext2D, ind: IndicatorData, vp: ChartViewport, layout: ChartLayout, bb: boolean) {
+   571→  // MA lines
+   572→  const maList = [
+   573→    { d: ind.ma20, color: IND_COLORS.ma20 },
+   574→    { d: ind.ma50, color: IND_COLORS.ma50 },
+   575→    { d: ind.ma100, color: IND_COLORS.ma100 },
+   576→  ]
+   577→  for (const ma of maList) {
+   578→    if (!ma.d) continue
+   579→    ctx.strokeStyle = ma.color
+   580→    ctx.lineWidth = 1.8
+   581→    ctx.globalAlpha = 1
+   582→    ctx.beginPath()
+   583→    let started = false
+   584→    for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   585→      const v = ma.d[i]
+   586→      if (isNaN(v)) continue
+   587→      const x = indexToX(i, vp, layout)
+   588→      const y = priceToY(v, vp, layout)
+   589→      if (!started) { ctx.moveTo(x, y); started = true } else ctx.lineTo(x, y)
+   590→    }
+   591→    ctx.stroke()
+   592→    ctx.globalAlpha = 1
+   593→  }
+   594→
+   595→  // Bollinger Bands
+   596→  if (bb && ind.bbUpper && ind.bbLower) {
+   597→    // Fill
+   598→    ctx.fillStyle = IND_COLORS.bbFill
+   599→    ctx.beginPath()
+   600→    let s = false
+   601→    for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   602→      const v = ind.bbUpper[i]; if (isNaN(v)) continue
+   603→      if (!s) { ctx.moveTo(indexToX(i, vp, layout), priceToY(v, vp, layout)); s = true }
+   604→      else ctx.lineTo(indexToX(i, vp, layout), priceToY(v, vp, layout))
+   605→    }
+   606→    for (let i = vp.endIndex; i >= vp.startIndex; i--) {
+   607→      const v = ind.bbLower[i]; if (isNaN(v)) continue
+   608→      ctx.lineTo(indexToX(i, vp, layout), priceToY(v, vp, layout))
+   609→    }
+   610→    ctx.closePath(); ctx.fill()
+   611→
+   612→    // Lines
+   613→    const bbLines = [ind.bbUpper, ind.bbMiddle, ind.bbLower]
+   614→    for (const line of bbLines) {
+   615→      if (!line) continue
+   616→      ctx.strokeStyle = IND_COLORS.bbLine; ctx.lineWidth = 0.8; ctx.setLineDash([4, 4])
+   617→      ctx.beginPath(); s = false
+   618→      for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   619→        const v = line[i]; if (isNaN(v)) continue
+   620→        const x = indexToX(i, vp, layout), y = priceToY(v, vp, layout)
+   621→        if (!s) { ctx.moveTo(x, y); s = true } else ctx.lineTo(x, y)
+   622→      }
+   623→      ctx.stroke(); ctx.setLineDash([])
+   624→    }
+   625→  }
+   626→}
+   627→
+   628→function drawRSI(ctx: CanvasRenderingContext2D, ind: IndicatorData, vp: ChartViewport, layout: ChartLayout) {
+   629→  if (!ind.rsi || layout.rsiTop == null || layout.rsiBottom == null) return
+   630→  const { rsiTop: t, rsiBottom: b } = layout
+   631→  const h = b - t
+   632→
+   633→  // Panel background
+   634→  ctx.fillStyle = 'rgba(128,128,128,0.02)'
+   635→  ctx.fillRect(0, t, layout.chartRight, h)
+   636→
+   637→  // Overbought/oversold fill
+   638→  const ob70 = b - (70 / 100) * h
+   639→  const ob30 = b - (30 / 100) * h
+   640→  ctx.fillStyle = 'rgba(239,83,80,0.06)'; ctx.fillRect(0, t, layout.chartRight, ob70 - t)
+   641→  ctx.fillStyle = 'rgba(38,166,154,0.06)'; ctx.fillRect(0, ob30, layout.chartRight, b - ob30)
+   642→
+   643→  // 70/30 lines
+   644→  ctx.strokeStyle = 'rgba(128,128,128,0.15)'; ctx.lineWidth = 0.5; ctx.setLineDash([3, 3])
+   645→  [ob70, ob30].forEach((y) => { ctx.beginPath(); ctx.moveTo(0, Math.round(y) + 0.5); ctx.lineTo(layout.chartRight, Math.round(y) + 0.5); ctx.stroke() })
+   646→  ctx.setLineDash([])
+   647→
+   648→  // 50 line
+   649→  const ob50 = b - 0.5 * h
+   650→  ctx.strokeStyle = 'rgba(128,128,128,0.08)'; ctx.lineWidth = 0.5
+   651→  ctx.beginPath(); ctx.moveTo(0, Math.round(ob50) + 0.5); ctx.lineTo(layout.chartRight, Math.round(ob50) + 0.5); ctx.stroke()
+   652→
+   653→  // RSI line
+   654→  ctx.strokeStyle = IND_COLORS.rsi; ctx.lineWidth = 1.3; ctx.beginPath()
+   655→  let s = false
+   656→  for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   657→    const v = ind.rsi[i]; if (isNaN(v)) continue
+   658→    const x = indexToX(i, vp, layout), y = b - (v / 100) * h
+   659→    if (!s) { ctx.moveTo(x, y); s = true } else ctx.lineTo(x, y)
+   660→  }
+   661→  ctx.stroke()
+   662→
+   663→  // Label
+   664→  ctx.fillStyle = 'rgba(128,128,128,0.4)'; ctx.font = '10px -apple-system,system-ui,sans-serif'
+   665→  ctx.fillText('RSI', 6, t + 12)
+   666→  ctx.fillText('70', layout.chartRight + 4, ob70 + 3)
+   667→  ctx.fillText('30', layout.chartRight + 4, ob30 + 3)
+   668→}
+   669→
+   670→function drawMACD(ctx: CanvasRenderingContext2D, ind: IndicatorData, vp: ChartViewport, layout: ChartLayout) {
+   671→  if (!ind.macdLine || layout.macdTop == null || layout.macdBottom == null) return
+   672→  const { macdTop: t, macdBottom: b } = layout
+   673→  const h = b - t
+   674→
+   675→  ctx.fillStyle = 'rgba(128,128,128,0.02)'; ctx.fillRect(0, t, layout.chartRight, h)
+   676→
+   677→  let mn = Infinity, mx = -Infinity
+   678→  for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   679→    for (const arr of [ind.macdLine, ind.macdSignal]) {
+   680→      const v = arr[i]; if (!isNaN(v)) { mn = Math.min(mn, v); mx = Math.max(mx, v) }
+   681→    }
+   682→  }
+   683→  const pad = (mx - mn) * 0.1 || 0.01; mn -= pad; mx += pad
+   684→  const toY = (v: number) => b - ((v - mn) / (mx - mn)) * h
+   685→
+   686→  // Zero line
+   687→  const zy = toY(0)
+   688→  ctx.strokeStyle = 'rgba(128,128,128,0.12)'; ctx.lineWidth = 0.5
+   689→  ctx.beginPath(); ctx.moveTo(0, Math.round(zy) + 0.5); ctx.lineTo(layout.chartRight, Math.round(zy) + 0.5); ctx.stroke()
+   690→
+   691→  const total = vp.endIndex - vp.startIndex + 1
+   692→  const bw = (layout.chartRight - layout.chartLeft) / total
+   693→
+   694→  // Histogram
+   695→  for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   696→    const v = ind.macdHistogram[i]; if (isNaN(v)) continue
+   697→    const x = indexToX(i, vp, layout), y = toY(v)
+   698→    const bh = Math.abs(zy - y)
+   699→    ctx.fillStyle = v >= 0 ? IND_COLORS.volGain : IND_COLORS.volLoss
+   700→    ctx.fillRect(Math.round(x - bw * 0.25), Math.round(Math.min(y, zy)), Math.round(bw * 0.5), Math.round(bh))
+   701→  }
+   702→
+   703→  // Lines
+   704→  const drawLine = (arr: number[], color: string) => {
+   705→    if (!arr) return
+   706→    ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.beginPath()
+   707→    let s = false
+   708→    for (let i = vp.startIndex; i <= vp.endIndex; i++) {
+   709→      const v = arr[i]; if (isNaN(v)) continue
+   710→      const x = indexToX(i, vp, layout), y = toY(v)
+   711→      if (!s) { ctx.moveTo(x, y); s = true } else ctx.lineTo(x, y)
+   712→    }
+   713→    ctx.stroke()
+   714→  }
+   715→  drawLine(ind.macdLine, IND_COLORS.macdLine)
+   716→  drawLine(ind.macdSignal, IND_COLORS.macdSignal)
+   717→
+   718→  ctx.fillStyle = 'rgba(128,128,128,0.4)'; ctx.font = '10px -apple-system,system-ui,sans-serif'
+   719→  ctx.fillText('MACD', 6, t + 12)
+   720→}
+   721→
+   722→function drawSeparators(ctx: CanvasRenderingContext2D, layout: ChartLayout) {
+   723→  if (layout.rsiTop != null) {
+   724→    ctx.strokeStyle = 'rgba(128,128,128,0.2)'; ctx.lineWidth = 1
+   725→    ctx.beginPath(); ctx.moveTo(0, Math.round(layout.rsiTop) + 0.5); ctx.lineTo(layout.chartRight, Math.round(layout.rsiTop) + 0.5); ctx.stroke()
+   726→  }
+   727→  if (layout.macdTop != null) {
+   728→    ctx.strokeStyle = 'rgba(128,128,128,0.2)'; ctx.lineWidth = 1
+   729→    ctx.beginPath(); ctx.moveTo(0, Math.round(layout.macdTop) + 0.5); ctx.lineTo(layout.chartRight, Math.round(layout.macdTop) + 0.5); ctx.stroke()
+   730→  }
+   731→}
+   732→
+   733→function drawCrosshair(ctx: CanvasRenderingContext2D, mouse: { x: number; y: number }, vp: ChartViewport, layout: ChartLayout) {
+   734→  if (mouse.x >= layout.chartRight || mouse.y >= layout.chartBottom) return
+   735→
+   736→  ctx.strokeStyle = 'rgba(128,128,128,0.35)'; ctx.lineWidth = 0.5; ctx.setLineDash([4, 4])
+   737→  ctx.beginPath(); ctx.moveTo(Math.round(mouse.x) + 0.5, layout.chartTop); ctx.lineTo(Math.round(mouse.x) + 0.5, layout.chartBottom); ctx.stroke()
+   738→  ctx.beginPath(); ctx.moveTo(layout.chartLeft, Math.round(mouse.y) + 0.5); ctx.lineTo(layout.chartRight, Math.round(mouse.y) + 0.5); ctx.stroke()
+   739→  ctx.setLineDash([])
+   740→
+   741→  // Price label
+   742→  const price = yToPrice(mouse.y, vp, layout)
+   743→  const label = formatChartPrice(price)
+   744→  ctx.font = '10px -apple-system,system-ui,sans-serif'
+   745→  const tw = ctx.measureText(label).width
+   746→  ctx.fillStyle = themeRef.current.crossBg
+   747→  ctx.fillRect(layout.chartRight, mouse.y - 9, tw + 10, 18)
+   748→  ctx.strokeStyle = 'rgba(128,128,128,0.3)'; ctx.lineWidth = 0.5
+   749→  ctx.strokeRect(layout.chartRight, mouse.y - 9, tw + 10, 18)
+   750→  ctx.fillStyle = themeRef.current.crossText; ctx.textAlign = 'left'
+   751→  ctx.fillText(label, layout.chartRight + 5, mouse.y + 4)
+   752→
+   753→}
+   754→
+   755→function drawInfoPanel(ctx: CanvasRenderingContext2D, mouse: { x: number; y: number }, vp: ChartViewport, layout: ChartLayout, data: OHLCData[]) {
+   756→  if (mouse.x >= layout.chartRight || mouse.y >= layout.chartBottom) return
+   757→  const idx = xToIndex(mouse.x, vp, layout)
+   758→  const c = data[idx]
+   759→  if (!c) return
+   760→
+   761→  const green = c.close >= c.open
+   762→  const price = yToPrice(mouse.y, vp, layout)
+   763→  const lines = [
+   764→    { label: 'O', value: c.open.toFixed(2), color: themeRef.current.crossText },
+   765→    { label: 'H', value: c.high.toFixed(2), color: themeRef.current.crossText },
+   766→    { label: 'L', value: c.low.toFixed(2), color: themeRef.current.crossText },
+   767→    { label: 'C', value: c.close.toFixed(2), color: green ? themeRef.current.gain : themeRef.current.loss },
+   768→    { label: 'Vol', value: formatChartVolume(c.volume), color: themeRef.current.textDim },
+   769→  ]
+   770→
+   771→  ctx.font = '11px -apple-system,system-ui,sans-serif'
+   772→  const maxW = lines.reduce((m, l) => Math.max(m, ctx.measureText(`${l.label}: ${l.value}`).width), 0)
+   773→  const padX = 10, padY = 6, lineH = 16
+   774→  const pw = maxW + padX * 2 + 6
+   775→  const ph = lines.length * lineH + padY * 2
+   776→
+   777→  let px = 10
+   778→  let py = 6
+   779→  if (mouse.x < layout.chartRight - pw - 20) px = 10
+   780→  if (mouse.y < layout.chartBottom - ph - 10) py = 6
+   781→  else py = layout.chartBottom - ph - 6
+   782→
+   783→  // Panel bg
+   784→  ctx.fillStyle = themeRef.current.crossBg
+   785→  roundedRect(ctx, px, py, pw, ph, 4)
+   786→  ctx.fill()
+   787→
+   788→  ctx.strokeStyle = 'rgba(128,128,128,0.2)'; ctx.lineWidth = 0.5
+   789→  roundedRect(ctx, px, py, pw, ph, 4)
+   790→  ctx.stroke()
+   791→
+   792→  // Lines
+   793→  ctx.textAlign = 'left'
+   794→  lines.forEach((l, i) => {
+   795→    const y = py + padY + i * lineH + 10
+   796→    ctx.fillStyle = themeRef.current.textDim; ctx.fillText(l.label, px + padX, y)
+   797→    ctx.fillStyle = l.color
+   798→    ctx.fillText(l.value, px + padX + 22, y)
+   799→  })
+   800→}
+   801→
+   802→function drawPriceAxis(ctx: CanvasRenderingContext2D, vp: ChartViewport, layout: ChartLayout) {
+   803→  const { chartTop, chartBottom, chartRight, volumeHeight } = layout
+   804→  const priceBottom = chartBottom - volumeHeight
+   805→  const priceRange = vp.maxPrice - vp.minPrice
+   806→  const step = niceStep(priceRange, 6)
+   807→
+   808→  ctx.fillStyle = themeRef.current.text; ctx.font = '10px -apple-system,system-ui,sans-serif'; ctx.textAlign = 'left'
+   809→
+   810→  let price = Math.ceil(vp.minPrice / step) * step
+   811→  while (price <= vp.maxPrice) {
+   812→    const y = priceToY(price, vp, layout)
+   813→    if (y >= chartTop && y <= priceBottom) {
+   814→      ctx.fillStyle = themeRef.current.text
+   815→      ctx.fillText(formatChartPrice(price), chartRight + 6, y + 3)
+   816→    }
+   817→    price += step
+   818→  }
+   819→}
+   820→
+   821→function drawTimeAxis(ctx: CanvasRenderingContext2D, data: OHLCData[], vp: ChartViewport, layout: ChartLayout) {
+   822→  const { chartBottom, chartRight, timeAxisHeight } = layout
+   823→  ctx.fillStyle = themeRef.current.text; ctx.font = '10px -apple-system,system-ui,sans-serif'; ctx.textAlign = 'center'
+   824→
+   825→  const total = vp.endIndex - vp.startIndex + 1
+   826→  const step = Math.max(1, Math.round(total / 8))
+   827→  for (let i = vp.startIndex; i <= vp.endIndex; i += step) {
+   828→    const x = indexToX(i, vp, layout)
+   829→    if (x > 30 && x < chartRight - 30) {
+   830→      const d = data[i].date
+   831→      ctx.fillText(d.slice(5), x, chartBottom + timeAxisHeight / 2 + 3)
+   832→    }
+   833→  }
+   834→}
+   835→
+   836→function drawLastPriceMarker(ctx: CanvasRenderingContext2D, data: OHLCData[], vp: ChartViewport, layout: ChartLayout) {
+   837→  const lastCandle = data[vp.endIndex]
+   838→  if (!lastCandle) return
+   839→
+   840→  const green = lastCandle.close >= lastCandle.open
+   841→  const y = priceToY(lastCandle.close, vp, layout)
+   842→  const { chartRight } = layout
+   843→
+   844→  // Horizontal dashed line
+   845→  ctx.strokeStyle = green ? themeRef.current.gain : themeRef.current.loss
+   846→  ctx.globalAlpha = 0.4
+   847→  ctx.lineWidth = 0.8
+   848→  ctx.setLineDash([3, 3])
+   849→  ctx.beginPath(); ctx.moveTo(layout.chartLeft, Math.round(y) + 0.5); ctx.lineTo(chartRight, Math.round(y) + 0.5); ctx.stroke()
+   850→  ctx.setLineDash([])
+   851→  ctx.globalAlpha = 1
+   852→
+   853→  // Price tag
+   854→  ctx.fillStyle = green ? themeRef.current.gain : themeRef.current.loss
+   855→  roundedRect(ctx, chartRight, y - 9, 56, 18, 3)
+   856→  ctx.fill()
+   857→
+   858→  ctx.fillStyle = '#fff'; ctx.font = 'bold 10px -apple-system,system-ui,sans-serif'; ctx.textAlign = 'left'
+   859→  ctx.fillText(formatChartPrice(lastCandle.close), chartRight + 5, y + 4)
+   860→}
+   861→
+   862→// ==================== Drawing Renderers ====================
+   863→
+   864→function renderDrawings(ctx: CanvasRenderingContext2D, drawings: ChartDrawing[], vp: ChartViewport, layout: ChartLayout) {
+   865→  for (const d of drawings) {
+   866→    ctx.strokeStyle = d.color; ctx.fillStyle = d.color; ctx.lineWidth = d.width
+   867→
+   868→    if (d.type === 'hline' && d.points.length > 0) {
+   869→      const y = priceToY(d.points[0].price, vp, layout)
+   870→      ctx.setLineDash([8, 4]); ctx.globalAlpha = 0.7
+   871→      ctx.beginPath(); ctx.moveTo(layout.chartLeft, Math.round(y) + 0.5); ctx.lineTo(layout.chartRight, Math.round(y) + 0.5); ctx.stroke()
+   872→      ctx.setLineDash([]); ctx.globalAlpha = 1
+   873→
+   874→      // Price tag on right
+   875→      ctx.fillStyle = d.color; roundedRect(ctx, layout.chartRight, y - 8, 52, 16, 3); ctx.fill()
+   876→      ctx.fillStyle = '#fff'; ctx.font = 'bold 9px -apple-system,system-ui,sans-serif'
+   877→      ctx.fillText(d.points[0].price.toFixed(2), layout.chartRight + 4, y + 3)
+   878→    }
+   879→
+   880→    if (d.type === 'trendline' && d.points.length >= 2) {
+   881→      const x1 = indexToX(d.points[0].index, vp, layout), y1 = priceToY(d.points[0].price, vp, layout)
+   882→      const x2 = indexToX(d.points[1].index, vp, layout), y2 = priceToY(d.points[1].price, vp, layout)
+   883→
+   884→      // Glow
+   885→      ctx.shadowColor = d.color; ctx.shadowBlur = 4
+   886→      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+   887→      ctx.shadowBlur = 0; ctx.shadowColor = 'transparent'
+   888→
+   889→      // Endpoint dots
+   890→      for (const [px, py] of [[x1, y1], [x2, y2]]) {
+   891→        ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(px, py, 3, 0, Math.PI * 2); ctx.fill()
+   892→        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI * 2); ctx.fill()
+   893→      }
+   894→    }
+   895→
+   896→    if (d.type === 'fibonacci' && d.points.length >= 2 && d.fibLevels) {
+   897→      const x1 = Math.min(indexToX(d.points[0].index, vp, layout), indexToX(d.points[1].index, vp, layout))
+   898→      const x2 = Math.max(indexToX(d.points[0].index, vp, layout), indexToX(d.points[1].index, vp, layout))
+   899→      const fibColors = ['rgba(239,83,80,0.06)', 'rgba(247,162,27,0.08)', 'rgba(126,87,194,0.08)', 'rgba(128,128,128,0.04)', 'rgba(126,87,194,0.08)', 'rgba(38,166,154,0.08)', 'rgba(38,166,154,0.06)']
+   900→      const fibLabels = ['0.0%', '23.6%', '38.2%', '50.0%', '61.8%', '78.6%', '100%']
+   901→
+   902→      for (let fi = 0; fi < d.fibLevels.length; fi++) {
+   903→        const price = d.fibLevels[fi]
+   904→        const y = priceToY(price, vp, layout)
+   905→
+   906→        // Fill
+   907→        if (fi < d.fibLevels.length - 1) {
+   908→          const ny = priceToY(d.fibLevels[fi + 1], vp, layout)
+   909→          ctx.fillStyle = fibColors[fi] ?? 'rgba(128,128,128,0.04)'
+   910→          ctx.fillRect(x1, y, x2 - x1, ny - y)
+   911→        }
+   912→
+   913→        // Line
+   914→        ctx.strokeStyle = 'rgba(128,128,128,0.2)'; ctx.lineWidth = 0.5; ctx.setLineDash([2, 2])
+   915→        ctx.beginPath(); ctx.moveTo(x1, Math.round(y) + 0.5); ctx.lineTo(x2, Math.round(y) + 0.5); ctx.stroke()
+   916→        ctx.setLineDash([])
+   917→
+   918→        // Label
+   919→        ctx.fillStyle = 'rgba(200,200,200,0.7)'; ctx.font = '9px -apple-system,system-ui,sans-serif'; ctx.textAlign = 'left'
+   920→        ctx.fillText(`${fibLabels[fi]}  ${price.toFixed(2)}`, x1 + 4, y - 3)
+   921→      }
+   922→    }
+   923→
+   924→    if (d.type === 'rectangle' && d.points.length >= 2) {
+   925→      const x1 = indexToX(d.points[0].index, vp, layout), y1 = priceToY(d.points[0].price, vp, layout)
+   926→      const x2 = indexToX(d.points[1].index, vp, layout), y2 = priceToY(d.points[1].price, vp, layout)
+   927→      const rx = Math.min(x1, x2), ry = Math.min(y1, y2), rw = Math.abs(x2 - x1), rh = Math.abs(y2 - y1)
+   928→
+   929→      ctx.fillStyle = d.color.replace(')', ',0.06)').replace('rgb', 'rgba').replace('oklch', 'rgba')
+   930→      ctx.fillRect(rx, ry, rw, rh)
+   931→      ctx.strokeStyle = d.color; ctx.lineWidth = 1.5
+   932→      ctx.strokeRect(rx, ry, rw, rh)
+   933→    }
+   934→  }
+   935→}
+   936→
+   937→
+   938→
+   939→function renderPreview(ctx: CanvasRenderingContext2D, drawing: ActiveDrawing, vp: ChartViewport, layout: ChartLayout) {
+   940→  if (!drawing.startData || !drawing.currentData) return
+   941→  ctx.strokeStyle = DRAW_COLORS[0]; ctx.lineWidth = 1.5; ctx.setLineDash([5, 4]); ctx.globalAlpha = 0.6
+   942→
+   943→  if (drawing.type === 'hline') {
+   944→    const y = priceToY(drawing.startData.price, vp, layout)
+   945→    ctx.beginPath(); ctx.moveTo(layout.chartLeft, Math.round(y) + 0.5); ctx.lineTo(layout.chartRight, Math.round(y) + 0.5); ctx.stroke()
+   946→  }
+   947→
+   948→  if (drawing.type === 'trendline') {
+   949→    ctx.beginPath()
+   950→    ctx.moveTo(indexToX(drawing.startData.index, vp, layout), priceToY(drawing.startData.price, vp, layout))
+   951→    ctx.lineTo(indexToX(drawing.currentData.index, vp, layout), priceToY(drawing.currentData.price, vp, layout))
+   952→    ctx.stroke()
+   953→  }
+   954→
+   955→  if (drawing.type === 'fibonacci') {
+   956→    const lx1 = Math.min(indexToX(drawing.startData.index, vp, layout), indexToX(drawing.currentData.index, vp, layout))
+   957→    const lx2 = Math.max(indexToX(drawing.startData.index, vp, layout), indexToX(drawing.currentData.index, vp, layout))
+   958→    const hi = Math.max(drawing.startData.price, drawing.currentData.price)
+   959→    const lo = Math.min(drawing.startData.price, drawing.currentData.price)
+   960→    const levels = fibonacciLevels(hi, lo)
+   961→    for (const p of levels) {
+   962→      const y = priceToY(p, vp, layout)
+   963→      ctx.strokeStyle = 'rgba(200,200,200,0.3)'; ctx.lineWidth = 0.5
+   964→      ctx.beginPath(); ctx.moveTo(lx1, Math.round(y) + 0.5); ctx.lineTo(lx2, Math.round(y) + 0.5); ctx.stroke()
+   965→    }
+   966→  }
+   967→
+   968→  if (drawing.type === 'rectangle') {
+   969→    const x1 = indexToX(drawing.startData.index, vp, layout), y1 = priceToY(drawing.startData.price, vp, layout)
+   970→    const x2 = indexToX(drawing.currentData.index, vp, layout), y2 = priceToY(drawing.currentData.price, vp, layout)
+   971→    ctx.strokeRect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1))
+   972→  }
+   973→
+   974→  ctx.setLineDash([]); ctx.globalAlpha = 1
+   975→}
+   976→
+   977→// ==================== Utilities ====================
+   978→
+   979→function roundedRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+   980→  r = Math.min(r, w / 2, h / 2)
+   981→  ctx.beginPath()
+   982→  ctx.moveTo(x + r, y)
+   983→  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r)
+   984→  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+   985→  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r)
+   986→  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r)
+   987→  ctx.closePath()
+   988→}
+   989→
+   990→function ptLineDist(px: number, py: number, x1: number, y1: number, x2: number, y2: number): number {
+   991→  const dx = x2 - x1, dy = y2 - y1
+   992→  const lenSq = dx * dx + dy * dy
+   993→  if (lenSq === 0) return Math.hypot(px - x1, py - y1)
+   994→  let t = ((px - x1) * dx + (py - y1) * dy) / lenSq
+   995→  t = Math.max(0, Math.min(1, t))
+   996→  return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy))
+   997→}
+   998→

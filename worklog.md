@@ -535,3 +535,57 @@ Stage Summary:
 - All flows verified: market → chart button → chart view → back → market
 - Canvas renders properly on both light and dark themes
 - No console errors after gitBranch fix
+---
+Task ID: 1
+Agent: Main Agent
+Task: Optimize chart for professional TradingView-quality rendering
+
+Work Log:
+- Read and analyzed all 3 chart files: chart-utils.ts, chart-canvas.tsx, chart-detail-view.tsx
+- Rewrote chart-utils.ts with improved calculations:
+  - Fixed Bollinger Bands to use sample standard deviation (TradingView standard)
+  - Fixed MACD signal calculation to compute on valid MACD values only
+  - Added snap-to-price function for drawing tools
+  - Added formatPriceLabel with adaptive decimal precision
+  - Added formatChartDate with smart formatting based on visible range
+  - Added Fibonacci zone colors and line colors constants
+  - Added hexToRgba and colorWithAlpha utility functions
+  - Improved niceStep algorithm for better grid scaling
+  - Improved viewport padding (asymmetric: 2% bottom, 4% top)
+  - Added Fibonacci label constants
+- Rewrote chart-canvas.tsx with professional rendering:
+  - Separated light/dark theme into typed ThemeColors interface
+  - Canvas rendering with { alpha: false } for performance
+  - imageSmoothingEnabled + imageSmoothingQuality for crisp rendering
+  - Candlestick rendering: gradient fills, rounded corners, subtle border, last candle glow
+  - Volume bars: gradient fills with rounded tops
+  - MA lines: lineJoin='round', lineCap='round' for smooth rendering
+  - Bollinger Bands: proper fill between upper/lower bands
+  - RSI panel: gradient fills for OB/OS zones, fill below RSI line, colored 70/30 reference lines
+  - MACD panel: gradient histogram bars, colored by strength, signal line with dash pattern
+  - Grid: dynamic opacity based on distance from center, proper sub-pixel alignment
+  - Crosshair: dotted style (2,2), professional price tag with rounded rect and pointer triangle
+  - Info panel: panel with shadow, rounded corners, proper OHLCV formatting
+  - Price axis: smart formatting with formatPriceLabel, dimmed text
+  - Time axis: smart date formatting via formatChartDate
+  - Last price marker: gradient tag with triangle pointer
+  - Drawing tools improvements:
+    - Horizontal line: price snap to nice numbers, dashed style, price tag with triangle pointer
+    - Trendline: extension 30% beyond endpoints, 3-layer glow endpoint dots
+    - Fibonacci: colored zones between levels, per-level line colors, labels with background
+    - Rectangle: proper colorWithAlpha fill, rounded corners, corner handles, price labels
+  - Error boundary: proper React class component
+  - Fixed missing imports (ChartCanvas, ErrorBoundary)
+- Fixed chart-detail-view.tsx:
+  - Added ChartCanvas import
+  - Replaced broken ErrorBoundary with proper React class component
+  - Added Component import from React
+- All lint checks pass clean
+- Verified via agent-browser: FPT stock chart, BTC crypto chart both render without errors
+
+Stage Summary:
+- chart-utils.ts: 350 lines → 300 lines (cleaner, better organized)
+- chart-canvas.tsx: 998 lines → 1060 lines (more professional rendering)
+- chart-detail-view.tsx: minor fixes (ErrorBoundary, imports)
+- Key improvements: gradient fills, rounded lines, extension trends, Fibonacci zones, adaptive formatting, proper DPR rendering
+- No console errors, no lint errors, no dev server errors

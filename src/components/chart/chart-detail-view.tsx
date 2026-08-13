@@ -1,13 +1,12 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { Component, useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeft,
   TrendingUp,
   Crosshair,
   Minus,
-  Move,
   GitBranch,
   Square,
   Type,
@@ -22,9 +21,8 @@ import {
   Eye,
   EyeOff,
   Ruler,
-  Plus,
-  ZoomIn,
-  ZoomOut,
+  Settings2,
+  MousePointer2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -42,53 +40,79 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { useAppStore } from '@/store/app-store'
-import { ChartCanvas } from '@/components/chart/chart-canvas'
 import { formatCurrency, formatPercent, formatNumber } from '@/lib/format'
 import { getAlertFromDrawing } from '@/lib/chart-utils'
+import { ChartCanvas } from '@/components/chart/chart-canvas'
 import { cn } from '@/lib/utils'
-import type { OHLCData, AssetDetail, TechnicalIndicators } from '@/lib/types'
+import type { OHLCData, AssetDetail } from '@/lib/types'
 import type { DrawingTool, ChartDrawing, IndicatorConfig } from '@/lib/chart-types'
 
+// Error boundary wrapper
+class ChartErrorBoundary extends Component<
+  { children: React.ReactNode; onReset: () => void },
+  { hasError: boolean }
+> {
+  constructor(props: { children: React.ReactNode; onReset: () => void }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 bg-muted/30 p-8">
+          <p className="text-sm text-muted-foreground">Lỗi hiển thị biểu đồ</p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); this.props.onReset() }}
+            className="text-xs text-primary underline"
+          >
+            Thử lại
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function ChartCanvasWrapper(props: React.ComponentProps<typeof ChartCanvas>) {
+  const [resetKey, setResetKey] = useState(0)
+  return (
+    <ChartErrorBoundary onReset={() => setResetKey((k) => k + 1)} key={resetKey}>
+      <ChartCanvas {...props} />
+    </ChartErrorBoundary>
+  )
+}
+
 type TimePeriod = '1D' | '1W' | '1M' | '3M' | '1Y' | 'ALL'
+const PERIOD_DAYS: Record<TimePeriod, number> = { '1D': 1, '1W': 7, '1M': 30, '3M': 90, '1Y': 365, ALL: 9999 }
 
-const PERIOD_LABELS: Record<TimePeriod, string> = {
-  '1D': '1 Ngày',
-  '1W': '1 Tuần',
-  '1M': '1 Tháng',
-  '3M': '3 Tháng',
-  '1Y': '1 Năm',
-  ALL: 'Tất cả',
-}
+const IND_COLORS = { rsi: '#7e57c2', ma20: '#f7a21b', ma50: '#2196f3', ma100: '#ab47bc', macd: '#2196f3' }
 
-const PERIOD_DAYS: Record<TimePeriod, number> = {
-  '1D': 1,
-  '1W': 7,
-  '1M': 30,
-  '3M': 90,
-  '1Y': 365,
-  ALL: 9999,
-}
-
-// Default indicator configs
 const DEFAULT_INDICATORS: IndicatorConfig[] = [
-  { type: 'ma20', enabled: true, color: 'oklch(0.75 0.15 80)' },
-  { type: 'ma50', enabled: true, color: 'oklch(0.7 0.2 310)' },
-  { type: 'ma100', enabled: false, color: 'oklch(0.65 0.18 200)' },
-  { type: 'bb', enabled: false, color: 'oklch(0.6 0.15 200)' },
-  { type: 'rsi', enabled: true, color: 'oklch(0.7 0.18 55)' },
-  { type: 'macd', enabled: false, color: 'oklch(0.7 0.15 145)' },
-  { type: 'volume', enabled: true, color: 'oklch(0.7 0 0 / 30%)' },
+  { type: 'ma20', enabled: true, color: '#f7a21b' },
+  { type: 'ma50', enabled: true, color: '#2196f3' },
+  { type: 'ma100', enabled: false, color: '#ab47bc' },
+  { type: 'bb', enabled: false, color: '#828cb4' },
+  { type: 'rsi', enabled: true, color: '#7e57c2' },
+  { type: 'macd', enabled: false, color: '#2196f3' },
+  { type: 'volume', enabled: true, color: '#26a69a' },
 ]
 
-export function ChartDetailView() {
-  const {
-    chartDetailSymbol,
-    chartDetailAssetName,
-    chartDetailAssetType,
-    closeChartDetail,
-    openOverlay,
-  } = useAppStore()
+const IND_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
+  ma20: { label: 'MA20', icon: <LineChart className="size-3.5" />, color: '#f7a21b' },
+  ma50: { label: 'MA50', icon: <LineChart className="size-3.5" />, color: '#2196f3' },
+  ma100: { label: 'MA100', icon: <LineChart className="size-3.5" />, color: '#ab47bc' },
+  bb: { label: 'Bollinger', icon: <BarChart3 className="size-3.5" />, color: '#828cb4' },
+  rsi: { label: 'RSI(14)', icon: <Activity className="size-3.5" />, color: '#7e57c2' },
+  macd: { label: 'MACD', icon: <Ruler className="size-3.5" />, color: '#2196f3' },
+  volume: { label: 'Vol', icon: <BarChart3 className="size-3.5" />, color: '#666' },
+}
 
+export function ChartDetailView() {
+  const { chartDetailSymbol, chartDetailAssetName, chartDetailAssetType, closeChartDetail, openOverlay } = useAppStore()
   const symbol = chartDetailSymbol ?? ''
   const isOpen = !!symbol
 
@@ -99,12 +123,11 @@ export function ChartDetailView() {
   const [indicators, setIndicators] = useState<IndicatorConfig[]>(DEFAULT_INDICATORS)
   const [showIndicators, setShowIndicators] = useState(false)
   const [crosshairPrice, setCrosshairPrice] = useState<number | null>(null)
-  const [crosshairIdx, setCrosshairIdx] = useState<number | null>(null)
+  const [crosshairCandle, setCrosshairCandle] = useState<OHLCData | null>(null)
 
-  const chartContainerRef = useRef<HTMLDivElement>(null)
+  const chartRef = useRef<HTMLDivElement>(null)
   const [chartSize, setChartSize] = useState({ width: 800, height: 400 })
 
-  // Fetch asset detail
   useEffect(() => {
     if (!isOpen || !symbol) return
     fetch(`/api/assets/${symbol}`)
@@ -113,12 +136,11 @@ export function ChartDetailView() {
       .catch(() => setDetail(null))
   }, [isOpen, symbol])
 
-  // Measure chart container
   useEffect(() => {
     const measure = () => {
-      if (chartContainerRef.current) {
-        const rect = chartContainerRef.current.getBoundingClientRect()
-        setChartSize({ width: rect.width, height: rect.height })
+      if (chartRef.current) {
+        const { width, height } = chartRef.current.getBoundingClientRect()
+        setChartSize({ width, height })
       }
     }
     measure()
@@ -126,7 +148,6 @@ export function ChartDetailView() {
     return () => window.removeEventListener('resize', measure)
   }, [showIndicators])
 
-  // Filter data by period
   const filteredData = useMemo(() => {
     if (!detail) return []
     const days = PERIOD_DAYS[period]
@@ -134,66 +155,35 @@ export function ChartDetailView() {
     return detail.priceHistory.slice(-days)
   }, [detail, period])
 
-  // OHLC data for crosshair display
-  const crosshairCandle = useMemo(() => {
-    if (crosshairIdx === null || !detail) return null
-    return detail.priceHistory[crosshairIdx] ?? null
-  }, [crosshairIdx, detail])
-
-  // Tool definitions
   const tools: { id: DrawingTool; icon: React.ReactNode; label: string }[] = [
-    { id: 'crosshair', icon: <Crosshair className="size-4" />, label: 'Crosshair' },
-    { id: 'hline', icon: <Minus className="size-4" />, label: 'Đường ngang' },
-    { id: 'trendline', icon: <TrendingUp className="size-4" />, label: 'Đường xu hướng' },
-    { id: 'fibonacci', icon: <GitBranch className="size-4" />, label: 'Fibonacci' },
-    { id: 'rectangle', icon: <Square className="size-4" />, label: 'Vùng giá' },
-    { id: 'text', icon: <Type className="size-4" />, label: 'Ghi chú' },
+    { id: 'crosshair', icon: <Crosshair className="size-3.5" />, label: 'Crosshair' },
+    { id: 'hline', icon: <Minus className="size-3.5" />, label: 'Đường ngang' },
+    { id: 'trendline', icon: <TrendingUp className="size-3.5" />, label: 'Đường xu hướng' },
+    { id: 'fibonacci', icon: <GitBranch className="size-3.5" />, label: 'Fibonacci' },
+    { id: 'rectangle', icon: <Square className="size-3.5" />, label: 'Vùng giá' },
   ]
 
-  // Handle drawing click → set alert
-  const handleDrawingClick = useCallback(
-    (drawing: ChartDrawing) => {
-      const alertInfo = getAlertFromDrawing(drawing, symbol, chartDetailAssetName ?? '')
-      if (alertInfo) {
-        openOverlay('alert-builder', {
-          assetSymbol: symbol,
-          assetName: chartDetailAssetName,
-          prefillCondition: alertInfo.condition,
-          prefillValue: alertInfo.value,
-          prefillDescription: alertInfo.conditionDescription,
-        })
-      }
-    },
-    [symbol, chartDetailAssetName, openOverlay]
-  )
+  const handleDrawingClick = useCallback((drawing: ChartDrawing) => {
+    const info = getAlertFromDrawing(drawing, symbol, chartDetailAssetName ?? '')
+    if (info) openOverlay('alert-builder', { assetSymbol: symbol, assetName: chartDetailAssetName, prefillCondition: info.condition, prefillValue: info.value, prefillDescription: info.conditionDescription })
+  }, [symbol, chartDetailAssetName, openOverlay])
 
-  // Toggle indicator
   const toggleIndicator = useCallback((type: string) => {
-    setIndicators((prev) =>
-      prev.map((ind) => (ind.type === type ? { ...ind, enabled: !ind.enabled } : ind))
-    )
+    setIndicators((prev) => prev.map((ind) => (ind.type === type ? { ...ind, enabled: !ind.enabled } : ind)))
   }, [])
 
-  // Clear all drawings
-  const clearDrawings = useCallback(() => {
-    setDrawings([])
-  }, [])
+  const clearDrawings = useCallback(() => setDrawings([]), [])
 
-  // Set alert from crosshair price
   const setAlertFromPrice = useCallback(() => {
     if (crosshairPrice === null) return
-    openOverlay('alert-builder', {
-      assetSymbol: symbol,
-      assetName: chartDetailAssetName,
-      prefillValue: crosshairPrice,
-      prefillDescription: `Giá chạm ${crosshairPrice.toFixed(2)}`,
-    })
+    openOverlay('alert-builder', { assetSymbol: symbol, assetName: chartDetailAssetName, prefillValue: crosshairPrice, prefillDescription: `Giá chạm ${crosshairPrice.toFixed(2)}` })
   }, [crosshairPrice, symbol, chartDetailAssetName, openOverlay])
 
   if (!isOpen) return null
 
   const isPositive = (detail?.change24h ?? 0) >= 0
   const assetType = chartDetailAssetType as 'stock' | 'crypto' | 'gold'
+  const lastCandle = detail?.priceHistory[detail.priceHistory.length - 1]
 
   return (
     <AnimatePresence>
@@ -201,255 +191,194 @@ export function ChartDetailView() {
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: 20 }}
-        className="flex flex-col gap-0 -mx-3 sm:-mx-4 md:-mx-6"
-        style={{ minHeight: 'calc(100vh - 6rem)' }}
+        className="flex flex-col -mx-3 sm:-mx-4 md:-mx-6"
+        style={{ height: 'calc(100vh - 5rem)', minHeight: 'calc(100vh - 5rem)' }}
       >
-        {/* ===== Top Header Bar ===== */}
-        <div className="shrink-0 px-3 sm:px-4 md:px-6 pt-2 pb-3 bg-card border-b">
-          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-            {/* Back button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0"
-              onClick={() => closeChartDetail()}
-            >
-              <ArrowLeft className="size-5" />
+        {/* ===== Header ===== */}
+        <div className="shrink-0 border-b bg-card/80 backdrop-blur-sm">
+          <div className="px-3 sm:px-4 md:px-6 py-2 flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="shrink-0 h-8 w-8" onClick={() => closeChartDetail()}>
+              <ArrowLeft className="size-4" />
             </Button>
 
-            {/* Asset info */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-lg font-bold truncate">{symbol}</h2>
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    {assetType === 'stock' ? 'CK' : assetType === 'crypto' ? 'Crypto' : 'Vàng'}
-                  </Badge>
-                </div>
-                {detail && (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-bold">
-                      {formatCurrency(detail.price, assetType)}
-                    </span>
-                    <span
-                      className={cn(
-                        'text-sm font-semibold',
-                        isPositive ? 'text-gain' : 'text-loss'
-                      )}
-                    >
-                      {formatPercent(detail.changePercent)}
-                    </span>
-                  </div>
-                )}
-              </div>
+            <div className="flex items-baseline gap-2 min-w-0">
+              <h2 className="text-base font-bold truncate">{symbol}</h2>
+              <Badge variant="outline" className="text-[10px] shrink-0 font-normal px-1.5">
+                {assetType === 'stock' ? 'CK' : assetType === 'crypto' ? 'Crypto' : 'Vàng'}
+              </Badge>
+              {detail && (
+                <>
+                  <span className="text-lg font-bold tabular-nums ml-1">{formatCurrency(detail.price, assetType)}</span>
+                  <span className={cn('text-sm font-semibold', isPositive ? 'text-gain' : 'text-loss')}>
+                    {formatPercent(detail.changePercent)}
+                  </span>
+                </>
+              )}
             </div>
 
-            {/* Quick stats */}
-            {detail && (
-              <div className="hidden lg:flex items-center gap-4 text-xs text-muted-foreground">
-                <span>O: <strong className="text-foreground tabular-nums">{formatNumber(detail.priceHistory[detail.priceHistory.length - 1]?.open ?? 0)}</strong></span>
-                <span>H: <strong className="text-foreground tabular-nums">{formatNumber(detail.priceHistory[detail.priceHistory.length - 1]?.high ?? 0)}</strong></span>
-                <span>L: <strong className="text-foreground tabular-nums">{formatNumber(detail.priceHistory[detail.priceHistory.length - 1]?.low ?? 0)}</strong></span>
-                <span>C: <strong className="text-foreground tabular-nums">{formatNumber(detail.price)}</strong></span>
-                <span>Vol: <strong className="text-foreground tabular-nums">{formatNumber(detail.volume)}</strong></span>
+            <div className="flex-1" />
+
+            {detail && lastCandle && (
+              <div className="hidden lg:flex items-center gap-3 text-[11px] text-muted-foreground tabular-nums">
+                <span>O <strong className="text-foreground">{formatNumber(lastCandle.open)}</strong></span>
+                <span>H <strong className="text-foreground">{formatNumber(lastCandle.high)}</strong></span>
+                <span>L <strong className="text-foreground">{formatNumber(lastCandle.low)}</strong></span>
+                <span>C <strong className={cn(isPositive ? 'text-gain' : 'text-loss')}>{formatNumber(detail.price)}</strong></span>
               </div>
             )}
 
-            {/* Action buttons */}
             <div className="flex items-center gap-1 shrink-0">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8" onClick={() => openOverlay('watchlist')}>
-                    <Layers className="size-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Watchlist</p></TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    className="h-8"
-                    onClick={() => openOverlay('alert-builder', { assetSymbol: symbol, assetName: chartDetailAssetName })}
-                  >
-                    <Bell className="size-3.5 mr-1" />
-                    <span className="hidden sm:inline">Cảnh báo</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Tạo cảnh báo</p></TooltipContent>
-              </Tooltip>
+              <Tooltip><TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openOverlay('watchlist')}><Layers className="size-3.5" /></Button>
+              </TooltipTrigger><TooltipContent><p>Watchlist</p></TooltipContent></Tooltip>
+              <Button size="sm" className="h-8 text-xs" onClick={() => openOverlay('alert-builder', { assetSymbol: symbol, assetName: chartDetailAssetName })}>
+                <Bell className="size-3 mr-1" />
+                <span className="hidden sm:inline">Cảnh báo</span>
+              </Button>
             </div>
           </div>
 
-          {/* Crosshair OHLC info */}
+          {/* Floating OHLC from crosshair */}
           {crosshairCandle && (
-            <div className="mt-2 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-              <span className="font-medium">{crosshairCandle.date}</span>
-              <span>O: <strong className="text-foreground tabular-nums">{formatNumber(crosshairCandle.open)}</strong></span>
-              <span>H: <strong className="text-foreground tabular-nums">{formatNumber(crosshairCandle.high)}</strong></span>
-              <span>L: <strong className="text-foreground tabular-nums">{formatNumber(crosshairCandle.low)}</strong></span>
-              <span>C: <strong className={cn('tabular-nums', crosshairCandle.close >= crosshairCandle.open ? 'text-gain' : 'text-loss')}>
-                {formatNumber(crosshairCandle.close)}
-              </strong></span>
-              <span>Vol: <strong className="text-foreground tabular-nums">{formatNumber(crosshairCandle.volume)}</strong></span>
+            <div className="px-3 sm:px-4 md:px-6 pb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
+              <span className="text-foreground font-medium">{crosshairCandle.date}</span>
+              <span>O <strong className="text-foreground">{formatNumber(crosshairCandle.open)}</strong></span>
+              <span>H <strong className="text-foreground">{formatNumber(crosshairCandle.high)}</strong></span>
+              <span>L <strong className="text-foreground">{formatNumber(crosshairCandle.low)}</strong></span>
+              <span>C <strong className={cn(crosshairCandle.close >= crosshairCandle.open ? 'text-gain' : 'text-loss')}>{formatNumber(crosshairCandle.close)}</strong></span>
+              <span>Vol <strong className="text-foreground">{formatNumber(crosshairCandle.volume)}</strong></span>
+              <div className="flex-1" />
               {crosshairPrice !== null && (
-                <Button variant="ghost" size="sm" className="h-6 ml-auto text-xs" onClick={setAlertFromPrice}>
-                  <Bell className="size-3 mr-1" />
-                  Cảnh báo @ {formatCurrency(crosshairPrice, assetType)}
-                </Button>
+                <button onClick={setAlertFromPrice} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted transition-colors">
+                  <Bell className="size-3" />
+                  <span className="text-foreground font-medium">{formatCurrency(crosshairPrice, assetType)}</span>
+                </button>
               )}
             </div>
           )}
         </div>
 
-        {/* ===== Drawing Tools Bar ===== */}
-        <div className="shrink-0 px-3 sm:px-4 md:px-6 py-2 bg-card border-b overflow-x-auto scrollbar-none">
-          <div className="flex items-center gap-1 min-w-max">
-            {/* Drawing tools */}
-            <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
+        {/* ===== Toolbar ===== */}
+        <div className="shrink-0 px-3 sm:px-4 md:px-6 py-1.5 border-b bg-card/60 backdrop-blur-sm overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1.5 min-w-max">
+            {/* Tools */}
+            <div className="flex items-center bg-muted/60 rounded-md p-0.5 gap-px">
               {tools.map((tool) => (
-                <Tooltip key={tool.id}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setActiveTool(tool.id)}
-                      className={cn(
-                        'flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
-                        activeTool === tool.id
-                          ? 'bg-background shadow-sm text-foreground'
-                          : 'text-muted-foreground hover:text-foreground'
-                      )}
-                    >
-                      {tool.icon}
-                      <span className="hidden md:inline">{tool.label}</span>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>{tool.label}</p></TooltipContent>
-                </Tooltip>
+                <Tooltip key={tool.id}><TooltipTrigger asChild>
+                  <button
+                    onClick={() => setActiveTool(tool.id)}
+                    className={cn(
+                      'flex items-center gap-1 rounded px-2 py-1.5 text-[11px] font-medium transition-all',
+                      activeTool === tool.id
+                        ? 'bg-background shadow-sm text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {tool.icon}
+                    <span className="hidden md:inline">{tool.label}</span>
+                  </button>
+                </TooltipTrigger><TooltipContent><p>{tool.label}</p></TooltipContent></Tooltip>
               ))}
             </div>
 
-            <Separator orientation="vertical" className="h-6 mx-1" />
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
 
-            {/* Time period */}
-            <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
+            {/* Period */}
+            <div className="flex items-center bg-muted/60 rounded-md p-0.5 gap-px">
               {(['1D', '1W', '1M', '3M', '1Y', 'ALL'] as TimePeriod[]).map((p) => (
                 <button
                   key={p}
                   onClick={() => setPeriod(p)}
                   className={cn(
-                    'rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors',
-                    period === p
-                      ? 'bg-background shadow-sm text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                    'rounded px-2 py-1.5 text-[11px] font-medium transition-all',
+                    period === p ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                   )}
-                >
-                  {p}
-                </button>
+                >{p}</button>
               ))}
             </div>
 
-            <Separator orientation="vertical" className="h-6 mx-1" />
+            <Separator orientation="vertical" className="h-5 mx-0.5" />
 
-            {/* Indicators toggle */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs"
-                  onClick={() => setShowIndicators(!showIndicators)}
-                >
-                  <Activity className="size-3.5 mr-1" />
-                  Chỉ báo
-                  {showIndicators ? <ChevronUp className="size-3 ml-1" /> : <ChevronDown className="size-3 ml-1" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent><p>Bật/tắt chỉ báo kỹ thuật</p></TooltipContent>
-            </Tooltip>
+            {/* Indicators button */}
+            <button
+              onClick={() => setShowIndicators(!showIndicators)}
+              className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+            >
+              <Settings2 className="size-3.5" />
+              <span className="hidden md:inline">Chỉ báo</span>
+              {showIndicators ? <ChevronUp className="size-2.5" /> : <ChevronDown className="size-2.5" />}
+            </button>
+
+            {/* Active indicator badges */}
+            {indicators.filter((i) => i.enabled && i.type !== 'volume').length > 0 && (
+              <div className="hidden sm:flex items-center gap-1">
+                {indicators.filter((i) => i.enabled && i.type !== 'volume').map((ind) => (
+                  <Badge
+                    key={ind.type}
+                    variant="outline"
+                    className="text-[9px] font-medium px-1.5 py-0 gap-1 cursor-pointer hover:bg-muted"
+                    style={{ borderColor: IND_META[ind.type]?.color + '60', color: IND_META[ind.type]?.color }}
+                    onClick={() => toggleIndicator(ind.type)}
+                  >
+                    <div className="size-1.5 rounded-full" style={{ backgroundColor: IND_META[ind.type]?.color }} />
+                    {IND_META[ind.type]?.label}
+                  </Badge>
+                ))}
+              </div>
+            )}
 
             {/* Clear drawings */}
             {drawings.length > 0 && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={clearDrawings}>
-                    <Trash2 className="size-3.5 mr-1" />
-                    Xóa ({drawings.length})
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent><p>Xóa tất cả đường vẽ</p></TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* Drawing count */}
-            {drawings.length > 0 && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <span className="bg-muted rounded-full px-2 py-0.5">{drawings.length} đường vẽ</span>
-                <span className="text-[10px]">(nhấp đúp để xóa, nhấp phải để đặt cảnh báo)</span>
-              </div>
+              <button onClick={clearDrawings} className="flex items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-medium text-destructive/70 hover:text-destructive hover:bg-destructive/5 transition-all">
+                <Trash2 className="size-3" />
+                <span className="hidden md:inline">{drawings.length}</span>
+              </button>
             )}
           </div>
         </div>
 
-        {/* ===== Indicators Panel (collapsible) ===== */}
+        {/* ===== Indicators Panel ===== */}
         <AnimatePresence>
           {showIndicators && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="overflow-hidden shrink-0 bg-card border-b"
-            >
-              <div className="px-3 sm:px-4 md:px-6 py-3">
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden shrink-0 border-b bg-card/60 backdrop-blur-sm">
+              <div className="px-3 sm:px-4 md:px-6 py-2.5">
                 <div className="flex items-center gap-2 mb-2">
-                  <Activity className="size-4 text-muted-foreground" />
-                  <span className="text-sm font-semibold">Chỉ báo kỹ thuật</span>
+                  <Activity className="size-3.5 text-muted-foreground" />
+                  <span className="text-xs font-semibold">Chỉ báo kỹ thuật</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2">
-                  {indicators.map((ind) => (
-                    <button
-                      key={ind.type}
-                      onClick={() => toggleIndicator(ind.type)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-medium transition-all',
-                        ind.enabled
-                          ? 'border-primary/50 bg-primary/5 text-primary'
-                          : 'border-border text-muted-foreground hover:bg-muted/50'
-                      )}
-                    >
-                      {ind.type === 'ma20' && <LineChart className="size-3.5" />}
-                      {ind.type === 'ma50' && <LineChart className="size-3.5" />}
-                      {ind.type === 'ma100' && <LineChart className="size-3.5" />}
-                      {ind.type === 'bb' && <BarChart3 className="size-3.5" />}
-                      {ind.type === 'rsi' && <Activity className="size-3.5" />}
-                      {ind.type === 'macd' && <Ruler className="size-3.5" />}
-                      {ind.type === 'volume' && <BarChart3 className="size-3.5" />}
-                      <span>{ind.type.toUpperCase()}</span>
-                      {ind.enabled ? (
-                        <Eye className="size-3 ml-auto" />
-                      ) : (
-                        <EyeOff className="size-3 ml-auto opacity-50" />
-                      )}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-1.5">
+                  {indicators.map((ind) => {
+                    const meta = IND_META[ind.type]
+                    return (
+                      <button
+                        key={ind.type}
+                        onClick={() => toggleIndicator(ind.type)}
+                        className={cn(
+                          'flex items-center gap-2 rounded-md border px-2.5 py-2 text-[11px] font-medium transition-all',
+                          ind.enabled ? 'border-current/30 bg-current/5' : 'border-border text-muted-foreground hover:bg-muted/50'
+                        )}
+                        style={ind.enabled ? { color: meta?.color, borderColor: meta?.color + '30' } : undefined}
+                      >
+                        {meta?.icon}
+                        <span>{meta?.label}</span>
+                        {ind.enabled ? <Eye className="size-3 ml-auto opacity-60" /> : <EyeOff className="size-3 ml-auto opacity-30" />}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* ===== Chart Area ===== */}
-        <div
-          ref={chartContainerRef}
-          className="flex-1 min-h-[300px] sm:min-h-[400px] md:min-h-[500px] relative"
-        >
+        {/* ===== Chart ===== */}
+        <div ref={chartRef} className="flex-1 min-h-0 relative bg-card">
           {!detail || filteredData.length === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <Skeleton className="h-64 w-full max-w-2xl rounded-lg" />
-            </div>
+            <div className="flex items-center justify-center h-full"><Skeleton className="h-64 w-full max-w-2xl rounded-lg" /></div>
           ) : (
             <ContextMenu>
               <ContextMenuTrigger className="block w-full h-full">
-                <ChartCanvas
+                <ChartCanvasWrapper
                   data={filteredData}
                   assetType={assetType}
                   width={chartSize.width}
@@ -458,46 +387,29 @@ export function ChartDetailView() {
                   drawings={drawings}
                   onDrawingsChange={setDrawings}
                   indicators={indicators}
-                  onCrosshairMove={(price, idx) => {
+                  onCrosshairMove={(price, idx, candle) => {
                     setCrosshairPrice(price)
-                    setCrosshairIdx(idx)
+                    setCrosshairCandle(candle)
                   }}
                   onDrawingClick={handleDrawingClick}
                 />
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem onClick={() => {
-                  if (crosshairPrice !== null) {
-                    openOverlay('alert-builder', {
-                      assetSymbol: symbol,
-                      assetName: chartDetailAssetName,
-                      prefillValue: crosshairPrice,
-                      prefillDescription: `Giá chạm ${crosshairPrice.toFixed(2)}`,
-                    })
-                  }
-                }}>
+                <ContextMenuItem onClick={() => crosshairPrice !== null && setAlertFromPrice()}>
                   <Bell className="size-4 mr-2" />
                   Đặt cảnh báo @ {crosshairPrice ? formatCurrency(crosshairPrice, assetType) : '...'}
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => {
                   if (crosshairPrice !== null) {
-                    const newDrawing: ChartDrawing = {
-                      id: `hline-${Date.now()}`,
-                      type: 'hline',
-                      color: 'oklch(0.75 0.15 80)',
-                      width: 2,
-                      points: [{ index: 0, price: crosshairPrice }],
-                    }
-                    setDrawings((prev) => [...prev, newDrawing])
+                    setDrawings((prev) => [...prev, { id: `hl-${Date.now()}`, type: 'hline', color: '#f7a21b', width: 1.5, points: [{ index: 0, price: crosshairPrice }] }])
                   }
                 }}>
                   <Minus className="size-4 mr-2" />
-                  Vẽ đường ngang @ {crosshairPrice ? formatCurrency(crosshairPrice, assetType) : '...'}
+                  Đường ngang @ {crosshairPrice ? formatCurrency(crosshairPrice, assetType) : '...'}
                 </ContextMenuItem>
                 {drawings.length > 0 && (
-                  <ContextMenuItem onClick={clearDrawings} className="text-destructive">
-                    <Trash2 className="size-4 mr-2" />
-                    Xóa tất cả đường vẽ
+                  <ContextMenuItem onClick={clearDrawings} className="text-destructive focus:text-destructive">
+                    <Trash2 className="size-4 mr-2" />Xóa tất cả
                   </ContextMenuItem>
                 )}
               </ContextMenuContent>
@@ -505,77 +417,70 @@ export function ChartDetailView() {
           )}
         </div>
 
-        {/* ===== Bottom Info Bar ===== */}
-        <div className="shrink-0 px-3 sm:px-4 md:px-6 py-3 bg-card border-t">
-          <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-muted-foreground">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span>⚠️ Kéo / cuộn để di chuyển biểu đồ</span>
-              <span>🔍 Cuộn chuột để zoom</span>
-              <span>✏️ Chọn công cụ để vẽ lên biểu đồ</span>
-              <span>🔔 Nhấp phải để đặt cảnh báo từ đường vẽ</span>
-            </div>
-            <div className="flex items-center gap-2">
+        {/* ===== Footer Bar ===== */}
+        <div className="shrink-0 border-t bg-card/80 backdrop-blur-sm px-3 sm:px-4 md:px-6 py-1.5">
+          <div className="flex items-center justify-between gap-3">
+            {/* Left: Indicator values */}
+            <div className="flex items-center gap-3 text-[11px] tabular-nums overflow-x-auto scrollbar-none">
               {detail && (
                 <>
-                  <span>
-                    RSI(14):{' '}
-                    <strong className={cn(
-                      detail.technicalIndicators.rsi > 70 ? 'text-loss' : detail.technicalIndicators.rsi < 30 ? 'text-gain' : 'text-foreground'
-                    )}>
+                  <span className="flex items-center gap-1">
+                    <div className="size-2 rounded-full" style={{ backgroundColor: IND_COLORS.rsi }} />
+                    <span className="text-muted-foreground">RSI</span>
+                    <strong className={cn(detail.technicalIndicators.rsi > 70 ? 'text-loss' : detail.technicalIndicators.rsi < 30 ? 'text-gain' : 'text-foreground')}>
                       {detail.technicalIndicators.rsi.toFixed(1)}
                     </strong>
                   </span>
-                  <span>
-                    MA20:{' '}
-                    <strong className="text-foreground">{formatNumber(detail.technicalIndicators.ma20)}</strong>
-                  </span>
-                  <span>
-                    MA50:{' '}
-                    <strong className="text-foreground">{formatNumber(detail.technicalIndicators.ma50)}</strong>
+                  {indicators.find((i) => i.type === 'ma20')?.enabled && (
+                    <span className="flex items-center gap-1">
+                      <div className="size-2 rounded-full" style={{ backgroundColor: IND_COLORS.ma20 }} />
+                      <span className="text-muted-foreground">MA20</span>
+                      <strong className="text-foreground">{formatNumber(detail.technicalIndicators.ma20)}</strong>
+                    </span>
+                  )}
+                  {indicators.find((i) => i.type === 'ma50')?.enabled && (
+                    <span className="flex items-center gap-1">
+                      <div className="size-2 rounded-full" style={{ backgroundColor: IND_COLORS.ma50 }} />
+                      <span className="text-muted-foreground">MA50</span>
+                      <strong className="text-foreground">{formatNumber(detail.technicalIndicators.ma50)}</strong>
+                    </span>
+                  )}
+                  {indicators.find((i) => i.type === 'ma100')?.enabled && (
+                    <span className="flex items-center gap-1">
+                      <div className="size-2 rounded-full" style={{ backgroundColor: IND_COLORS.ma100 }} />
+                      <span className="text-muted-foreground">MA100</span>
+                      <strong className="text-foreground">{formatNumber(detail.technicalIndicators.ma100)}</strong>
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1">
+                    <span className="text-muted-foreground">MACD</span>
+                    <strong className={detail.technicalIndicators.macd.histogram >= 0 ? 'text-gain' : 'text-loss'}>
+                      {detail.technicalIndicators.macd.macd.toFixed(2)}
+                    </strong>
                   </span>
                 </>
               )}
             </div>
-          </div>
 
-          {/* Drawings list */}
-          {drawings.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {drawings.map((drawing, idx) => (
-                <div
-                  key={drawing.id}
-                  className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs bg-card"
-                >
-                  <div
-                    className="size-2 rounded-full shrink-0"
-                    style={{ backgroundColor: drawing.color }}
-                  />
-                  <span className="font-medium">
-                    {drawing.type === 'hline' && `Đường ngang ${drawing.points[0]?.price.toFixed(2)}`}
-                    {drawing.type === 'trendline' && 'Đường xu hướng'}
-                    {drawing.type === 'fibonacci' && 'Fibonacci'}
-                    {drawing.type === 'rectangle' && 'Vùng giá'}
+            {/* Right: Drawing pills */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              {drawings.slice(-3).map((drawing, idx) => (
+                <div key={drawing.id} className="flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] bg-background">
+                  <div className="size-1.5 rounded-full" style={{ backgroundColor: drawing.color }} />
+                  <span className="max-w-[60px] truncate font-medium">
+                    {drawing.type === 'hline' && drawing.points[0]?.price.toFixed(0)}
+                    {drawing.type === 'trendline' && 'XH'}
+                    {drawing.type === 'fibonacci' && 'Fib'}
+                    {drawing.type === 'rectangle' && 'VG'}
                   </span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() => handleDrawingClick(drawing)}
-                  >
-                    <Bell className="size-3 text-muted-foreground" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-5 w-5"
-                    onClick={() => setDrawings((prev) => prev.filter((_, i) => i !== idx))}
-                  >
-                    <Trash2 className="size-3 text-destructive" />
-                  </Button>
+                  <button onClick={() => handleDrawingClick(drawing)} className="hover:text-primary"><Bell className="size-2.5" /></button>
                 </div>
               ))}
+              {drawings.length > 3 && (
+                <span className="text-[10px] text-muted-foreground">+{drawings.length - 3}</span>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </motion.div>
     </AnimatePresence>
