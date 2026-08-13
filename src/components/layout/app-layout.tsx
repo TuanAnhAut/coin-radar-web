@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import { AppHeader } from '@/components/layout/app-header'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { SidebarNav } from '@/components/layout/sidebar-nav'
@@ -34,34 +35,48 @@ import { cn } from '@/lib/utils'
 
 export function AppLayout() {
   const { currentView, sidebarCollapsed, chartDetailSymbol } = useAppStore()
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Scroll to top when view changes
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0
+    }
+  }, [currentView, chartDetailSymbol])
 
   return (
-    <div className="h-screen flex flex-col bg-background overflow-hidden">
+    <div className="h-screen supports-[height:100dvh]:h-dvh flex flex-col bg-background overflow-hidden">
       {/* Smart App Banner (mobile/tablet only) */}
       <SmartAppBanner />
 
       <AppHeader />
 
-      <div className="flex flex-1">
+      {/* Content wrapper — min-h-0 is CRITICAL for flex children to allow shrinking */}
+      <div className="flex flex-1 min-h-0">
         {/* Sidebar (desktop xl+) */}
         <SidebarNav />
 
-        {/* Main content area */}
+        {/* Main content area — relative anchor for the absolute-positioned scroll container */}
         <main
           className={cn(
-            'flex-1 min-w-0 min-h-0 transition-all duration-300 ease-in-out',
+            'relative flex-1 min-w-0 min-h-0 transition-all duration-300 ease-in-out',
             // Account for sidebar on xl+ (1280px+)
             'xl:ml-64',
             sidebarCollapsed && 'xl:ml-[68px]'
           )}
         >
+          {/* Scroll container — absolute positioning guarantees full fill of parent */}
           <div
+            ref={scrollRef}
             className={cn(
-              'custom-scrollbar overflow-y-auto h-full',
+              'custom-scrollbar overflow-y-auto',
+              // Absolute positioning: fills the entire main area
+              'absolute inset-0',
+              // Fixed header clearance (padding stays fixed in scrollport)
+              'pt-[3.25rem] sm:pt-[3.75rem]',
               // Bottom nav clearance: only when sidebar is NOT visible (below xl)
               'pb-[80px] xl:pb-6',
-              // Fixed header clearance
-              'pt-[3.25rem] sm:pt-[3.75rem]',
+              // Side padding
               'px-3 sm:px-4 md:px-6'
             )}
           >
@@ -72,7 +87,7 @@ export function AppLayout() {
         </main>
       </div>
 
-      {/* Bottom navigation (mobile/tablet: md and below) */}
+      {/* Bottom navigation (mobile/tablet: below xl) */}
       <BottomNav />
 
       {/* Global overlays */}

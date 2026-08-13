@@ -666,3 +666,25 @@ Stage Summary:
 - Profile section now has 3 new functional sheets for account management
 - All forms have proper validation, loading states, and Vietnamese UI text
 - API endpoints provide backend support for all new features
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Fix scroll bugs across the entire page
+
+Work Log:
+- Diagnosed root cause: `<div className="flex flex-1">` was missing `min-h-0`, causing it to expand beyond viewport (1775px vs 577px viewport). Root's `overflow-hidden` clipped content without scrolling.
+- The inner scroll container had `h-full` but resolved to 1775px (matching expanded parent), making `scrollHeight === clientHeight` — no overflow, no scroll.
+- Fixed by adding `min-h-0` to the flex-1 wrapper div to allow proper flex shrinking
+- Changed scroll container from `h-full` to `absolute inset-0` for guaranteed fill of parent regardless of flex height resolution
+- Added `relative` to `<main>` as positioning context for the absolute scroll container
+- Added `useEffect` with `scrollRef` to reset scroll to top on view change (`currentView`, `chartDetailSymbol`)
+- Changed root from `h-screen` to `h-screen supports-[height:100dvh]:h-dvh` for proper mobile viewport handling with fallback
+- Verified on desktop (1440x900), mobile (375x812), and medium viewports
+- All views tested: home (scrollable), market, alerts, chat, profile, chart detail — all scroll correctly
+
+Stage Summary:
+- Root cause: missing `min-h-0` on flex child in column flex container prevented proper shrinking
+- Solution: `min-h-0` + `absolute inset-0` scroll container + scroll-to-top on view change
+- Verified: scrollHeight > clientHeight on content-heavy views, header stays fixed at top=0, bottom nav clearance works, scroll resets on view switch
+- No console errors, lint passes clean
