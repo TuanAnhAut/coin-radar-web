@@ -49,6 +49,10 @@ interface AppState {
   sidebarCollapsed: boolean
   setSidebarCollapsed: (collapsed: boolean) => void
   toggleSidebar: () => void
+
+  // Chat - active expert room
+  activeChatExpertId: string | null
+  setActiveChatExpertId: (id: string | null) => void
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -79,4 +83,8 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarCollapsed: false,
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+
+  // Chat
+  activeChatExpertId: null,
+  setActiveChatExpertId: (id) => set({ activeChatExpertId: id }),
 }))

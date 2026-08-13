@@ -12,6 +12,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/app-store'
 import type { Expert } from '@/lib/types'
+import { ChatRoom } from '@/components/chat/chat-room'
 
 const categoryTabs = [
   { key: 'all', label: 'Tất cả' },
@@ -93,7 +94,7 @@ export function ExpertDirectory() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<CategoryKey>('all')
-  const { openOverlay } = useAppStore()
+  const { openOverlay, setActiveChatExpertId, activeChatExpertId } = useAppStore()
 
   useEffect(() => {
     async function fetchExperts() {
@@ -123,6 +124,11 @@ export function ExpertDirectory() {
 
     return matchSearch && matchCategory
   })
+
+  // If an expert is selected for chat, show ChatRoom
+  if (activeChatExpertId) {
+    return <ChatRoom />
+  }
 
   return (
     <div className="space-y-4">
@@ -179,7 +185,7 @@ export function ExpertDirectory() {
               key={expert.id}
               expert={expert}
               index={index}
-              onSendMessage={() => toast.info('Tính năng sắp ra mắt')}
+              onSendMessage={() => setActiveChatExpertId(expert.id)}
               onViewProfile={() =>
                 openOverlay('expert-profile', { id: expert.id })
               }

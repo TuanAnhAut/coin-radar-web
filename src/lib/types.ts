@@ -134,6 +134,26 @@ export interface Expert {
   accuracyPercent: number;
 }
 
+// ==================== Chat Types ====================
+
+export type ChatMessageRole = 'user' | 'expert' | 'system';
+
+export interface ChatMessage {
+  id: string;
+  role: ChatMessageRole;
+  content: string;
+  createdAt: string;
+  expertId: string;
+}
+
+export interface ChatConversation {
+  expertId: string;
+  expertName: string;
+  lastMessage: string;
+  lastMessageAt: string;
+  unreadCount: number;
+}
+
 // ==================== Portfolio Types ====================
 
 export interface PortfolioAsset {

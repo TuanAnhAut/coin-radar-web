@@ -78,7 +78,7 @@ const recentAnalyses = [
 ]
 
 export function ExpertProfileSheet() {
-  const { activeOverlay, overlayData, closeOverlay } = useAppStore()
+  const { activeOverlay, overlayData, closeOverlay, setActiveChatExpertId, setCurrentView } = useAppStore()
   const [expert, setExpert] = useState<Expert | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -114,7 +114,11 @@ export function ExpertProfileSheet() {
         {loading ? (
           <ProfileSkeleton />
         ) : expert ? (
-          <ExpertProfileContent expert={expert} onClose={closeOverlay} />
+          <ExpertProfileContent expert={expert} onClose={closeOverlay} onSendMessage={() => {
+            closeOverlay()
+            setCurrentView('chat')
+            setTimeout(() => setActiveChatExpertId(expert.id), 200)
+          }} />
         ) : (
           <div className="text-center py-12 text-muted-foreground">
             Không tìm thấy chuyên gia
@@ -125,7 +129,7 @@ export function ExpertProfileSheet() {
   )
 }
 
-function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: () => void }) {
+function ExpertProfileContent({ expert, onClose, onSendMessage }: { expert: Expert; onClose: () => void; onSendMessage: () => void }) {
   const statusConfig = getStatusConfig(expert.onlineStatus)
   const experience = 5 + parseInt(expert.id.split('-')[1] || '1', 10) * 2
 
@@ -266,7 +270,7 @@ function ExpertProfileContent({ expert, onClose }: { expert: Expert; onClose: ()
         <Button
           className="w-full sm:flex-1 gap-2 h-12"
           size="lg"
-          onClick={() => toast.info('Tính năng sắp ra mắt')}
+          onClick={onSendMessage}
         >
           <MessageCircle className="h-4 w-4" />
           Nhắn tin

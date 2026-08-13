@@ -422,3 +422,40 @@ Stage Summary:
 - AlertDetailSheet: no more `<p> cannot contain <div>` hydration error
 - AlertBuilderSheet: proper fullscreen on mobile, centered dialog on desktop with correct flex layout
 - All overlay z-indexes properly stacked (z-40 for nav, z-50 for overlays)
+---
+Task ID: 9
+Agent: main
+Task: Build complete chat with expert feature
+
+Work Log:
+- Updated types.ts with ChatMessage and ChatConversation interfaces
+- Updated Zustand store (app-store.ts) with activeChatExpertId state to toggle between ExpertDirectory and ChatRoom views
+- Created API route `/api/chat/[expertId]/messages` with:
+  - GET: returns chat history (with welcome message for new conversations)
+  - POST: sends user message, generates AI expert response using z-ai-web-dev-sdk LLM
+  - Each expert has unique system prompt based on their specialty and bio
+  - Conversation history maintained in-memory per expert (max 20 messages context)
+  - Input validation (max 500 chars, non-empty)
+  - Vietnamese language responses, professional but friendly tone
+  - Fallback responses if AI fails
+- Created ChatRoom component (src/components/chat/chat-room.tsx):
+  - Full-height chat layout with sticky header, scrollable messages, and fixed input
+  - Expert header with avatar, name, online status, rating
+  - Message bubbles (user vs expert vs system/welcome)
+  - Typing indicator with animated dots
+  - Auto-resizing textarea input
+  - Quick suggestion chips for new conversations
+  - Auto-scroll to newest messages
+  - Optimistic UI (shows user message immediately)
+  - Back button returns to expert directory
+  - Keyboard submit with Enter (Shift+Enter for newline)
+  - Responsive: works on both mobile and desktop
+- Updated ExpertDirectory: "Nhắn tin" button now opens ChatRoom via setActiveChatExpertId
+- Updated ExpertProfileSheet: "Nhắn tin" button closes profile sheet, switches to chat view, opens ChatRoom
+
+Stage Summary:
+- Full chat feature built and verified with agent browser
+- AI responses are contextual and in Vietnamese
+- Mobile and desktop responsive verified
+- No console errors
+- Lint passes
