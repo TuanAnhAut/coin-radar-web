@@ -24,6 +24,7 @@ export function AppHeader() {
 
   const viewLabels: Record<string, string> = {
     home: 'Tổng quan',
+    news: 'Tin tức',
     alerts: 'Cảnh báo',
     market: 'Thị trường',
     chat: 'Chat AI',

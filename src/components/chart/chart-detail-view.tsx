@@ -238,24 +238,28 @@ export function ChartDetailView() {
             </div>
           </div>
 
-          {/* Floating OHLC from crosshair */}
-          {crosshairCandle && (
-            <div className="px-3 sm:px-4 md:px-6 pb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums">
-              <span className="text-foreground font-medium">{crosshairCandle.date}</span>
-              <span>O <strong className="text-foreground">{formatNumber(crosshairCandle.open)}</strong></span>
-              <span>H <strong className="text-foreground">{formatNumber(crosshairCandle.high)}</strong></span>
-              <span>L <strong className="text-foreground">{formatNumber(crosshairCandle.low)}</strong></span>
-              <span>C <strong className={cn(crosshairCandle.close >= crosshairCandle.open ? 'text-gain' : 'text-loss')}>{formatNumber(crosshairCandle.close)}</strong></span>
-              <span>Vol <strong className="text-foreground">{formatNumber(crosshairCandle.volume)}</strong></span>
-              <div className="flex-1" />
-              {crosshairPrice !== null && (
-                <button onClick={setAlertFromPrice} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted transition-colors">
-                  <Bell className="size-3" />
-                  <span className="text-foreground font-medium">{formatCurrency(crosshairPrice, assetType)}</span>
-                </button>
-              )}
-            </div>
-          )}
+          {/* Floating OHLC from crosshair — fixed height container to prevent layout shift */}
+          <div className="px-3 sm:px-4 md:px-6 pb-1.5 flex items-center gap-2 text-[11px] text-muted-foreground tabular-nums h-[28px] shrink-0">
+            {crosshairCandle ? (
+              <>
+                <span className="text-foreground font-medium">{crosshairCandle.date}</span>
+                <span>O <strong className="text-foreground">{formatNumber(crosshairCandle.open)}</strong></span>
+                <span>H <strong className="text-foreground">{formatNumber(crosshairCandle.high)}</strong></span>
+                <span>L <strong className="text-foreground">{formatNumber(crosshairCandle.low)}</strong></span>
+                <span>C <strong className={cn(crosshairCandle.close >= crosshairCandle.open ? 'text-gain' : 'text-loss')}>{formatNumber(crosshairCandle.close)}</strong></span>
+                <span>Vol <strong className="text-foreground">{formatNumber(crosshairCandle.volume)}</strong></span>
+                <div className="flex-1" />
+                {crosshairPrice !== null && (
+                  <button onClick={setAlertFromPrice} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 hover:bg-muted transition-colors">
+                    <Bell className="size-3" />
+                    <span className="text-foreground font-medium">{formatCurrency(crosshairPrice, assetType)}</span>
+                  </button>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground/50 text-[11px]">Di chuột vào biểu đồ để xem OHLC</span>
+            )}
+          </div>
         </div>
 
         {/* ===== Toolbar ===== */}
