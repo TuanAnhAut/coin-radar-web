@@ -797,3 +797,37 @@ Stage Summary:
 - 3 files changed: page.tsx, auth-gate.tsx, app-store.ts
 - Lint pass, Agent Browser verified, 0 hydration errors
 - Code đã force push lên remote
+
+---
+Task ID: 10
+Agent: main
+Task: Thay đổi luồng auth — Trang chủ tự do, AuthGate overlay cho tính năng bảo vệ
+
+Work Log:
+- Sửa `src/app/page.tsx`: Bỏ AuthGate ở page level, luôn render AppLayout cho mọi user (guest + authenticated)
+- Sửa `src/store/app-store.ts`:
+  - Thêm `pendingView`, `authGateOpen` state
+  - Thêm `openAuthGate(view?)`, `closeAuthGate()`, `requireAuth(view)` functions
+  - Thêm `isProtectedView()`, `isProtectedOverlay()` helpers
+  - Protected views: alerts, chat, profile
+  - Protected overlays: notifications, alert-detail, alert-builder, alert-templates, watchlist, expert-profile, portfolio, notification-settings, security-settings, subscription, edit-profile, two-factor, change-password
+  - `openOverlay()` tự chặn overlay bảo vệ khi guest, redirect sang `openAuthGate()`
+  - `login()` tự đóng auth gate + chuyển đến `pendingView`
+- Sửa `src/components/layout/app-header.tsx`: Guest thấy nút "Đăng nhập", user thấy Thông báo + Avatar
+- Sửa `src/components/layout/bottom-nav.tsx`: Dùng `requireAuth()` cho tất cả tab (protected auto-show auth gate)
+- Sửa `src/components/layout/sidebar-nav.tsx`: Desktop + mobile drawer dùng `requireAuth()`
+- Sửa `src/components/layout/app-layout.tsx`: Mount AuthGate như fixed fullscreen overlay (z-[100])
+- Sửa `src/components/auth/auth-gate.tsx`:
+  - Fix bug: `useState` → `useEffect` cho mount detection
+  - Thêm nút X đóng (closeAuthGate) — guest có thể quay lại
+- Sửa `src/components/home/recent-alerts.tsx`: "Xem tất cả" dùng `requireAuth('alerts')`
+
+Stage Summary:
+- Homepage, Tin tức, Thị trường: truy cập tự do không cần đăng nhập
+- Cảnh báo, Chat AI, Cá nhân: yêu cầu đăng nhập (AuthGate overlay fullscreen)
+- Giữ nguyên giao diện AuthGate gốc (LoginScreen, RegisterScreen, ForgotPassword, VerifyOtp)
+- Nút X đóng auth gate — guest không bị stuck
+- Sau đăng nhập → tự chuyển đến trang đã yêu cầu
+- Header thay đổi theo trạng thái auth
+- Zero lint errors, all browser verification steps PASS
+- Đã push lên GitHub: commit f5ec11b
