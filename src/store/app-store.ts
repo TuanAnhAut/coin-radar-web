@@ -45,10 +45,12 @@ interface AppState {
   user: UserData | null
   pendingVerifyEmail: string | null
   pendingVerifyType: 'register' | 'forgot-password' | 'login'
+  _hydrated: boolean
   setAuthScreen: (screen: AuthScreen) => void
   login: (user: UserData) => void
   logout: () => void
   setPendingVerify: (email: string, type: 'register' | 'forgot-password' | 'login') => void
+  hydrateAuth: () => void
 
   // Navigation
   currentView: ViewType
@@ -92,41 +94,37 @@ interface AppState {
   closeChartDetail: () => void
 }
 
-// Check localStorage for persisted session on init
-function getInitialAuthState(): {
-  isAuthenticated: boolean
-  user: UserData | null
-} {
-  if (typeof window === 'undefined') return { isAuthenticated: false, user: null }
-  try {
-    const stored = localStorage.getItem('cr_auth_session')
-    if (stored) {
-      const parsed = JSON.parse(stored)
-      if (parsed && parsed.user) {
-        return { isAuthenticated: true, user: parsed.user }
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return { isAuthenticated: false, user: null }
-}
-
-const initial = getInitialAuthState()
-
+// Store always starts unauthenticated to avoid SSR/client hydration mismatch.
+// hydrateAuth() reads localStorage on the client after first mount via useEffect.
 export const useAppStore = create<AppState>((set) => ({
-  // Auth
-  isAuthenticated: initial.isAuthenticated,
+  // Auth — always false on init (same for server & client)
+  isAuthenticated: false,
   authScreen: 'login',
-  user: initial.user,
+  user: null,
   pendingVerifyEmail: null,
   pendingVerifyType: 'register',
+  _hydrated: false,
   setAuthScreen: (screen) => set({ authScreen: screen }),
+  hydrateAuth: () => {
+    try {
+      const stored = localStorage.getItem('cr_auth_session')
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        if (parsed && parsed.user) {
+          set({ isAuthenticated: true, user: parsed.user, _hydrated: true })
+          return
+        }
+      }
+    } catch {
+      // ignore
+    }
+    set({ _hydrated: true })
+  },
   login: (user) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('cr_auth_session', JSON.stringify({ user }))
     }
-    set({ isAuthenticated: true, user, authScreen: 'login' })
+    set({ isAuthenticated: true, user, authScreen: 'login', _hydrated: true })
   },
   logout: () => {
     if (typeof window !== 'undefined') {
