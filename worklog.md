@@ -741,3 +741,29 @@ Stage Summary:
 - News page created with full tab system: Tin chung (all), Quan trọng (important-filtered), Quan tâm (bookmarked), Danh mục (category-filtered)
 - Navigation updated: 6 items in sidebar (desktop), 5 in bottom nav (mobile) with "Tin tức" prominent
 - All verified via agent-browser: 2-column layout, tab switching, bookmarking, category filtering, no console errors
+---
+Task ID: 8
+Agent: main
+Task: Khôi phục giao diện gốc trước GĐ7 (revert từ squashed GĐ1-7)
+
+Work Log:
+- Phân tích git history: phát hiện commit `afbc7f5` (squashed GĐ1-7) đã thay thế toàn bộ code gốc
+- Tìm thấy code gốc trong reflog tại commit `4bce5c2` (202 files, phong phú hơn nhiều)
+- Code gốc vs squashed GĐ1-7:
+  - Bản gốc: framer-motion animations, modular components (PortfolioSummary, QuickActions, MarketCards, NewsFeed, RecentAlerts)
+  - Bản gốc: SmartAppBanner, MobileOnboardingPrompt, PortfolioSheet, DisplaySettingsSheet, SecuritySettingsSheet, SubscriptionSheet
+  - Bản gốc: MarketOverview, RiskScannerSheet, WatchlistSheet, AlertFab, AlertTemplatesSheet, ExpertProfileSheet, ChatRoom, ExpertProfileSheet
+  - Bản gốc: 19 API routes, more complex app-layout with many overlays
+  - Squashed: Simplified monolithic components, fewer overlays, less animations
+- Reset về `4bce5c2` với `git reset --hard 4bce5c2`
+- Bổ sung Chat AI vào bottom-nav (bản gốc thiếu, chỉ có 5/6 tabs)
+- Thêm mobile sidebar drawer (bản gốc sidebar chỉ `hidden xl:flex`)
+- Thêm `mobileSidebarOpen` state vào app-store.ts
+- Thêm hamburger menu button vào app-header.tsx cho < xl screens
+- Lint pass sạch, dev server chạy OK, Agent Browser verified cả desktop và mobile
+
+Stage Summary:
+- Code gốc đã được khôi phục thành công
+- Giao diện trở về trạng thái phát triển đầy đủ trước khi squashed
+- Bổ sung 2 tính năng mới: mobile sidebar drawer + Chat AI bottom-nav tab
+- Dev server chạy OK, Agent Browser verified dashboard, sidebar, header, bottom-nav
