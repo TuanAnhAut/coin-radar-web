@@ -767,3 +767,33 @@ Stage Summary:
 - Giao diện trở về trạng thái phát triển đầy đủ trước khi squashed
 - Bổ sung 2 tính năng mới: mobile sidebar drawer + Chat AI bottom-nav tab
 - Dev server chạy OK, Agent Browser verified dashboard, sidebar, header, bottom-nav
+---
+Task ID: 9
+Agent: main
+Task: Fix hydration mismatch + force push lên git
+
+Work Log:
+- Phân tích lỗi hydration: getInitialAuthState() đọc localStorage lúc module init
+  → Server trả isAuthenticated=false (render AuthGate), Client đọc localStorage
+  trả isAuthenticated=true (render AppLayout) → cây HTML khác hoàn toàn
+- Fix app-store.ts: Xóa getInitialAuthState() và const initial, store luôn
+  start với isAuthenticated=false cho cả server và client
+- Thêm _hydrated: boolean flag và hydrateAuth() method vào store
+- hydrateAuth() đọc localStorage an toàn, chỉ gọi từ useEffect client-side
+- Fix page.tsx: Gọi hydrateAuth() trong useEffect, render skeleton div
+  khi _hydrated=false, chỉ render AuthGate/AppLayout khi _hydrated=true
+- Fix auth-gate.tsx: Thêm mounted state với setTimeout(0) để bật
+  motion initial/exit animation SAU khi hydration hoàn thành
+- Verify bằng Agent Browser:
+  - Desktop 1280x800: Login → Dashboard, navigate tabs, không lỗi
+  - Mobile 375x812: Login → Dashboard, hamburger menu, không lỗi
+  - Xóa session → reload → Login page, không lỗi
+  - Thêm session → reload → Dashboard, không lỗi
+  - agent-browser errors: rỗng (0 errors)
+- Force push lên git: git push --force origin main
+
+Stage Summary:
+- Hydration mismatch đã fix hoàn toàn
+- 3 files changed: page.tsx, auth-gate.tsx, app-store.ts
+- Lint pass, Agent Browser verified, 0 hydration errors
+- Code đã force push lên remote
