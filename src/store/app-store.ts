@@ -76,6 +76,9 @@ interface AppState {
   sidebarCollapsed: boolean
   setSidebarCollapsed: (collapsed: boolean) => void
   toggleSidebar: () => void
+  mobileSidebarOpen: boolean
+  setMobileSidebarOpen: (open: boolean) => void
+  toggleMobileSidebar: () => void
 
   // Chat - active expert room
   activeChatExpertId: string | null
@@ -173,6 +176,9 @@ export const useAppStore = create<AppState>((set) => ({
   sidebarCollapsed: false,
   setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  mobileSidebarOpen: false,
+  setMobileSidebarOpen: (open) => set({ mobileSidebarOpen: open }),
+  toggleMobileSidebar: () => set((state) => ({ mobileSidebarOpen: !state.mobileSidebarOpen })),
 
   // Chat
   activeChatExpertId: null,

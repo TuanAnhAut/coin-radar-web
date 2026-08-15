@@ -1,7 +1,7 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { Radar, Search, Bell, Sun, Moon } from 'lucide-react'
+import { Radar, Search, Bell, Sun, Moon, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useAppStore } from '@/store/app-store'
@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
 
 export function AppHeader() {
   const { theme, setTheme } = useTheme()
-  const { setSearchOpen, setNotificationsOpen, unreadCount, currentView } =
+  const { setSearchOpen, setNotificationsOpen, unreadCount, currentView, toggleMobileSidebar } =
     useAppStore()
 
   const viewLabels: Record<string, string> = {
@@ -29,6 +29,16 @@ export function AppHeader() {
       <div className="flex h-12 sm:h-14 items-center justify-between px-3 sm:px-4 md:px-6">
         {/* Left - Logo */}
         <div className="flex items-center gap-2 min-w-0">
+          {/* Mobile hamburger menu */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="xl:hidden h-10 w-10 sm:h-9 sm:w-9 -ml-1"
+            onClick={toggleMobileSidebar}
+            aria-label="Mở menu"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
             <Radar className="h-4 w-4 text-primary-foreground" />
           </div>

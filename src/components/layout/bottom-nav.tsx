@@ -9,6 +9,7 @@ const navItems: { view: ViewType; label: string; icon: typeof LayoutDashboard; s
   { view: 'news', label: 'Tin tức', icon: Newspaper },
   { view: 'alerts', label: 'Cảnh báo', icon: Bell, showBadge: true },
   { view: 'market', label: 'Thị trường', icon: TrendingUp },
+  { view: 'chat', label: 'Chat AI', icon: MessageCircle },
   { view: 'profile', label: 'Cá nhân', icon: User },
 ]
 
