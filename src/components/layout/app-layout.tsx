@@ -32,10 +32,11 @@ import { AlertBuilderSheet } from '@/components/alerts/alert-builder-sheet'
 import { AlertDetailSheet } from '@/components/alerts/alert-detail-sheet'
 import { ChartDetailView } from '@/components/chart/chart-detail-view'
 import { useAppStore } from '@/store/app-store'
+import { AuthGate } from '@/components/auth/auth-gate'
 import { cn } from '@/lib/utils'
 
 export function AppLayout() {
-  const { currentView, sidebarCollapsed, chartDetailSymbol } = useAppStore()
+  const { currentView, sidebarCollapsed, chartDetailSymbol, authGateOpen } = useAppStore()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Scroll to top when view changes
@@ -120,6 +121,13 @@ export function AppLayout() {
 
       {/* Mobile onboarding prompt (first visit) */}
       <MobileOnboardingPrompt />
+
+      {/* Auth gate overlay — full screen when guest accesses protected feature */}
+      {authGateOpen && (
+        <div className="fixed inset-0 z-[100] bg-background">
+          <AuthGate />
+        </div>
+      )}
     </div>
   )
 }

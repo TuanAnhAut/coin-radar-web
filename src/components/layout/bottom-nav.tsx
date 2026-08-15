@@ -14,7 +14,7 @@ const navItems: { view: ViewType; label: string; icon: typeof LayoutDashboard; s
 ]
 
 export function BottomNav() {
-  const { currentView, setCurrentView, unreadCount } = useAppStore()
+  const { currentView, requireAuth, setCurrentView, unreadCount } = useAppStore()
 
   return (
     <nav
@@ -34,7 +34,7 @@ export function BottomNav() {
           return (
             <button
               key={item.view}
-              onClick={() => setCurrentView(item.view)}
+              onClick={() => requireAuth(item.view)}
               className={cn(
                 'relative flex flex-col items-center justify-center rounded-lg transition-colors',
                 // Compact touch target for 6 items

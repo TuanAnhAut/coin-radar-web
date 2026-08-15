@@ -39,7 +39,7 @@ export function RecentAlerts() {
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { openOverlay, setCurrentView } = useAppStore()
+  const { openOverlay, requireAuth } = useAppStore()
 
   useEffect(() => {
     async function fetchAlerts() {
@@ -81,7 +81,7 @@ export function RecentAlerts() {
         <h2 className="text-sm sm:text-base font-semibold">Cảnh báo gần đây</h2>
         <button
           className="text-xs text-muted-foreground hover:text-foreground transition-colors min-h-[32px] px-2 rounded-md hover:bg-accent/50"
-          onClick={() => setCurrentView('alerts')}
+          onClick={() => requireAuth('alerts')}
         >
           Xem tất cả
         </button>

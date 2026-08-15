@@ -1,16 +1,26 @@
 'use client'
 
 import { useTheme } from 'next-themes'
-import { Radar, Search, Bell, Sun, Moon, Menu } from 'lucide-react'
+import { Radar, Search, Bell, Sun, Moon, Menu, LogIn, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAppStore } from '@/store/app-store'
 import { cn } from '@/lib/utils'
 
 export function AppHeader() {
   const { theme, setTheme } = useTheme()
-  const { setSearchOpen, setNotificationsOpen, unreadCount, currentView, toggleMobileSidebar } =
-    useAppStore()
+  const {
+    setSearchOpen,
+    setNotificationsOpen,
+    unreadCount,
+    currentView,
+    toggleMobileSidebar,
+    isAuthenticated,
+    user,
+    openAuthGate,
+    requireAuth,
+  } = useAppStore()
 
   const viewLabels: Record<string, string> = {
     home: 'Tổng quan',
@@ -67,23 +77,51 @@ export function AppHeader() {
             <Search className="h-4 w-4" />
           </Button>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative h-10 w-10 sm:h-9 sm:w-9"
-            onClick={() => setNotificationsOpen(true)}
-            aria-label="Thông báo"
-          >
-            <Bell className="h-4 w-4" />
-            {unreadCount > 0 && (
-              <Badge
-                variant="destructive"
-                className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+          {isAuthenticated ? (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative h-10 w-10 sm:h-9 sm:w-9"
+                onClick={() => setNotificationsOpen(true)}
+                aria-label="Thông báo"
               >
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </Badge>
-            )}
-          </Button>
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <Badge
+                    variant="destructive"
+                    className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold leading-none"
+                  >
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Badge>
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 sm:h-9 sm:w-9"
+                onClick={() => requireAuth('profile')}
+                aria-label="Hồ sơ"
+              >
+                <Avatar className="h-7 w-7">
+                  <AvatarImage src={user?.avatarUrl ?? undefined} alt={user?.fullName} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                    {user?.fullName ? user.fullName.charAt(0).toUpperCase() : <User className="h-3.5 w-3.5" />}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              className="h-9 px-3 gap-1.5 text-xs font-medium"
+              onClick={() => openAuthGate()}
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Đăng nhập</span>
+            </Button>
+          )}
 
           <Button
             variant="ghost"

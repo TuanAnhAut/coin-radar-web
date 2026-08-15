@@ -32,7 +32,7 @@ const navItems: { view: ViewType; label: string; icon: typeof LayoutDashboard }[
 ]
 
 function NavContent({ onNavigate }: { onNavigate?: () => void }) {
-  const { currentView, setCurrentView, sidebarCollapsed, setSidebarCollapsed } =
+  const { currentView, requireAuth, sidebarCollapsed, setSidebarCollapsed } =
     useAppStore()
 
   return (
@@ -67,7 +67,7 @@ function NavContent({ onNavigate }: { onNavigate?: () => void }) {
             <button
               key={item.view}
               onClick={() => {
-                setCurrentView(item.view)
+                requireAuth(item.view)
                 onNavigate?.()
               }}
               className={cn(
@@ -242,7 +242,7 @@ export function SidebarNav() {
               <button
                 key={item.view}
                 onClick={() => {
-                  useAppStore.getState().setCurrentView(item.view)
+                  useAppStore.getState().requireAuth(item.view)
                   closeMobile()
                 }}
                 className={cn(

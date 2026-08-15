@@ -23,9 +23,38 @@ export type OverlayType =
   | 'edit-profile'
   | 'two-factor'
   | 'change-password'
+  | 'auth-gate'
   | null
 
 export type AuthScreen = 'login' | 'register' | 'forgot-password' | 'verify-otp'
+
+// Protected views — require authentication
+const PROTECTED_VIEWS: ViewType[] = ['alerts', 'chat', 'profile']
+
+// Protected overlays — require authentication
+const PROTECTED_OVERLAYS: OverlayType[] = [
+  'notifications',
+  'alert-detail',
+  'alert-builder',
+  'alert-templates',
+  'watchlist',
+  'expert-profile',
+  'portfolio',
+  'notification-settings',
+  'security-settings',
+  'subscription',
+  'edit-profile',
+  'two-factor',
+  'change-password',
+]
+
+export function isProtectedView(view: ViewType): boolean {
+  return PROTECTED_VIEWS.includes(view)
+}
+
+export function isProtectedOverlay(overlay: OverlayType): boolean {
+  return PROTECTED_OVERLAYS.includes(overlay)
+}
 
 export interface UserData {
   id: string
@@ -46,15 +75,21 @@ interface AppState {
   pendingVerifyEmail: string | null
   pendingVerifyType: 'register' | 'forgot-password' | 'login'
   _hydrated: boolean
+  pendingView: ViewType | null // view to navigate after login
+  authGateOpen: boolean // whether the auth gate overlay is showing
   setAuthScreen: (screen: AuthScreen) => void
   login: (user: UserData) => void
   logout: () => void
   setPendingVerify: (email: string, type: 'register' | 'forgot-password' | 'login') => void
   hydrateAuth: () => void
+  openAuthGate: (view?: ViewType) => void // show auth gate overlay
+  closeAuthGate: () => void // close auth gate overlay
 
   // Navigation
   currentView: ViewType
   setCurrentView: (view: ViewType) => void
+  requireAuth: (view: ViewType) => void // check auth before navigating
+  navigateOrAuth: (view: ViewType) => void // alias for requireAuth
 
   // Overlays (modals/sheets)
   activeOverlay: OverlayType
@@ -104,6 +139,8 @@ export const useAppStore = create<AppState>((set) => ({
   pendingVerifyEmail: null,
   pendingVerifyType: 'register',
   _hydrated: false,
+  pendingView: null,
+  authGateOpen: false,
   setAuthScreen: (screen) => set({ authScreen: screen }),
   hydrateAuth: () => {
     try {
@@ -124,7 +161,20 @@ export const useAppStore = create<AppState>((set) => ({
     if (typeof window !== 'undefined') {
       localStorage.setItem('cr_auth_session', JSON.stringify({ user }))
     }
-    set({ isAuthenticated: true, user, authScreen: 'login', _hydrated: true })
+    const state = useAppStore.getState()
+    const pending = state.pendingView
+    set({
+      isAuthenticated: true,
+      user,
+      authScreen: 'login',
+      _hydrated: true,
+      // Close auth gate and navigate to pending view
+      authGateOpen: false,
+      activeOverlay: null,
+      overlayData: null,
+      pendingView: null,
+      currentView: pending ?? state.currentView,
+    })
   },
   logout: () => {
     if (typeof window !== 'undefined') {
@@ -139,6 +189,8 @@ export const useAppStore = create<AppState>((set) => ({
       chartDetailSymbol: null,
       chartDetailAssetName: null,
       chartDetailAssetType: null,
+      authGateOpen: false,
+      pendingView: null,
     })
   },
   setPendingVerify: (email, type) => set({
@@ -146,17 +198,60 @@ export const useAppStore = create<AppState>((set) => ({
     pendingVerifyType: type,
     authScreen: 'verify-otp',
   }),
+  openAuthGate: (view) => {
+    set({
+      authGateOpen: true,
+      activeOverlay: 'auth-gate' as OverlayType,
+      authScreen: 'login',
+      ...(view ? { pendingView: view } : {}),
+    })
+  },
+  closeAuthGate: () => {
+    set({
+      authGateOpen: false,
+      activeOverlay: null,
+      overlayData: null,
+      pendingView: null,
+      authScreen: 'login',
+    })
+  },
 
   // Navigation
   currentView: 'home',
   setCurrentView: (view) => set({ currentView: view }),
+  requireAuth: (view) => {
+    const { isAuthenticated } = useAppStore.getState()
+    if (isProtectedView(view) && !isAuthenticated) {
+      useAppStore.getState().openAuthGate(view)
+      return
+    }
+    useAppStore.getState().setCurrentView(view)
+  },
+  navigateOrAuth: (view) => {
+    useAppStore.getState().requireAuth(view)
+  },
 
   // Overlays
   activeOverlay: null,
   overlayData: null,
-  openOverlay: (overlay, data) =>
-    set({ activeOverlay: overlay, overlayData: data ?? null }),
-  closeOverlay: () => set({ activeOverlay: null, overlayData: null }),
+  openOverlay: (overlay, data) => {
+    const { isAuthenticated } = useAppStore.getState()
+    // Protected overlays require authentication
+    if (isProtectedOverlay(overlay) && !isAuthenticated) {
+      useAppStore.getState().openAuthGate()
+      return
+    }
+    set({ activeOverlay: overlay, overlayData: data ?? null })
+  },
+  closeOverlay: () => {
+    // Don't close auth-gate overlay via closeOverlay — use closeAuthGate
+    const { activeOverlay } = useAppStore.getState()
+    if (activeOverlay === 'auth-gate') {
+      useAppStore.getState().closeAuthGate()
+      return
+    }
+    set({ activeOverlay: null, overlayData: null })
+  },
 
   // Global Search
   searchOpen: false,
